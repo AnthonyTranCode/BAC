@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Year Planner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,700;1,800;1,900&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --cell-w:      40px;
+      --label-w:     76px;
+      --cell-min-h:  62px;
+      --track-h:     28px;
+      --bar-h:       26px;
+      --font:        'Inter', system-ui, sans-serif;
+      --c-adventures: #f97316;
+      --c-occasions:  #eab308;
+      --c-holidays:   #0891b2;
+      --c-network:    #16a34a;
+      --c-misogi-fg:  #dc2626;
+      --c-bucket-fg:  #1e293b;
+      --bg-cell:      #ffffff;
+      --bg-weekend:   #dde5f0;
+      --bg-inactive:  #c9d0db;
+      --text-inactive:#8fa0b4;
+      --border:       #d1d9e4;
+      --border-dark:  #1e293b;
+    }
+
+    body {
+      font-family: var(--font);
+      background: #e8ecf1;
+      color: #1e293b;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ─── Page Header (title + legend + controls) ─── */
+    .page-header {
+      background: #fff;
+      padding: 20px 28px 18px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 24px;
+      border-bottom: 3px solid var(--border-dark);
+    }
+
+    .header-left {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      flex-shrink: 0;
+    }
+
+    .page-title {
+      font: 900 48px/0.9 var(--font);
+      color: #1e293b;
+      text-transform: uppercase;
+      letter-spacing: -1.5px;
+      white-space: nowrap;
+    }
+
+    .page-title .title-year {
+      color: #1e3a5f;
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn-group { display: flex; gap: 3px; }
+
+    .yr-btn, .cty-btn {
+      padding: 5px 12px;
+      border: 1.5px solid #94a3b8;
+      background: none;
+      border-radius: 5px;
+      font: 700 12px/1 var(--font);
+      color: #475569;
+      cursor: pointer;
+      transition: all .13s;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+    }
+
+    .yr-btn.active  { background: #1e3a5f; border-color: #1e3a5f; color: #fff; }
+    .cty-btn.active { background: #e0f2fe; border-color: var(--c-holidays); color: var(--c-holidays); }
+    .yr-btn:hover:not(.active), .cty-btn:hover:not(.active) { background: #f1f5f9; border-color: #64748b; }
+
+    .sep { width: 1px; height: 20px; background: #cbd5e1; flex-shrink: 0; }
+
+    .export-btn {
+      padding: 5px 12px;
+      background: #1e3a5f;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      font: 700 12px/1 var(--font);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      transition: background .13s;
+    }
+    .export-btn:hover { background: #0f2040; }
+    .export-btn:disabled { opacity: .55; cursor: default; }
+
+    /* ─── Legend ─────────────────────────────────────── */
+    .legend {
+      display: grid;
+      grid-template-columns: repeat(3, auto);
+      gap: 10px 28px;
+      align-content: start;
+    }
+
+    .leg-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      white-space: nowrap;
+    }
+
+    .leg-swatch {
+      width: 30px;
+      height: 30px;
+      border-radius: 5px;
+      flex-shrink: 0;
+    }
+
+    .leg-label {
+      font: 800 italic 13px/1 var(--font);
+      color: #1e293b;
+      text-transform: uppercase;
+      letter-spacing: 0.2px;
+    }
+
+    .sw-adventures { background: var(--c-adventures); }
+    .sw-occasions  { background: var(--c-occasions); }
+    .sw-holidays   { background: var(--c-holidays); }
+    .sw-network    { background: var(--c-network); }
+    .sw-misogi     { background: transparent; border: 3px dashed var(--c-misogi-fg); }
+    .sw-bucketlist { background: transparent; border: 3px dashed var(--c-bucket-fg); }
+
+    /* ─── Zoom outer scroll container ───────────────── */
+    .page-outer {
+      flex: 1;
+      overflow: auto;
+      background: #e8ecf1;
+    }
+
+    /* Scaler — receives CSS zoom property */
+    #page-scaler {
+      display: inline-block;
+      min-width: 100%;
+    }
+
+    /* ─── Calendar wrapper ──────────────────────────── */
+    .cal-wrap {
+      padding: 16px 28px 80px;
+    }
+
+    .cal-grid { min-width: max-content; }
+
+    /* ─── Month rows ────────────────────────────────── */
+    .month-row {
+      display: flex;
+      align-items: stretch;
+      margin-bottom: 2px;
+    }
+
+    .month-lbl {
+      width: var(--label-w);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font: 900 13px/1 var(--font);
+      color: #1e3a5f;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 5px 0 0 5px;
+    }
+
+    .days-area {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Absolutely-positioned multi-day bars */
+    .ev-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: calc(31 * var(--cell-w));
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    /* Day cells row */
+    .cells-row { display: flex; }
+
+    .day-cell {
+      width: var(--cell-w);
+      min-height: var(--cell-min-h);
+      flex-shrink: 0;
+      background: var(--bg-cell);
+      border: 1px solid var(--border);
+      border-left: none;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      transition: background .1s;
+      overflow: hidden;
+    }
+
+    .day-cell:last-child { border-radius: 0 5px 5px 0; }
+    .day-cell:hover:not(.inactive) { background: #f0f7ff !important; }
+    .day-cell.weekend  { background: var(--bg-weekend); }
+    .day-cell.inactive { background: var(--bg-inactive) !important; cursor: default; }
+
+    .day-cell.today {
+      outline: 2.5px solid var(--c-adventures);
+      outline-offset: -2px;
+      z-index: 2;
+    }
+
+    /* Cell header: "Mon 1" on one line */
+    .cell-hdr {
+      padding: 4px 2px 3px;
+      text-align: center;
+    }
+
+    .cell-hdr-txt {
+      font: 700 8px/1 var(--font);
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: .2px;
+      white-space: nowrap;
+    }
+
+    .day-cell.weekend  .cell-hdr-txt { color: #4a6080; }
+    .day-cell.inactive .cell-hdr-txt { color: var(--text-inactive); }
+
+    .cell-evs {
+      flex: 1;
+      padding: 1px 2px 2px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      overflow: hidden;
+    }
+
+    /* ─── Single-day chips ──────────────────────────── */
+    .chip {
+      font: 700 8px/1 var(--font);
+      padding: 2px 3px;
+      border-radius: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      cursor: pointer;
+      pointer-events: auto;
+      text-transform: uppercase;
+      letter-spacing: .2px;
+      min-height: 13px;
+      display: flex;
+      align-items: center;
+    }
+
+    .chip.cat-adventures { background: var(--c-adventures); color: #fff; }
+    .chip.cat-occasions  { background: var(--c-occasions);  color: #fff; }
+    .chip.cat-holidays   { background: var(--c-holidays);   color: #fff; }
+    .chip.cat-network    { background: var(--c-network);    color: #fff; }
+    .chip.cat-misogi     { background: transparent; border: 1.5px dashed var(--c-misogi-fg); color: var(--c-misogi-fg); }
+    .chip.cat-bucketlist { background: transparent; border: 1.5px dashed var(--c-bucket-fg); color: var(--c-bucket-fg); }
+
+    /* ─── Multi-day event bars ──────────────────────── */
+    .ev-bar {
+      position: absolute;
+      height: var(--bar-h);
+      border-radius: 4px;
+      font: 800 11px/var(--bar-h) var(--font);
+      color: #fff;
+      padding: 0 8px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      cursor: pointer;
+      pointer-events: auto;
+      z-index: 10;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+    }
+
+    .ev-bar:hover { filter: brightness(1.08); }
+
+    .ev-bar.cat-adventures { background: var(--c-adventures); }
+    .ev-bar.cat-occasions  { background: var(--c-occasions); color: #1e293b; }
+    .ev-bar.cat-holidays   { background: var(--c-holidays); }
+    .ev-bar.cat-network    { background: var(--c-network); }
+    .ev-bar.cat-misogi     {
+      background: transparent;
+      border: 2.5px dashed var(--c-misogi-fg);
+      color: var(--c-misogi-fg);
+      line-height: calc(var(--bar-h) - 5px);
+    }
+    .ev-bar.cat-bucketlist {
+      background: transparent;
+      border: 2.5px dashed var(--c-bucket-fg);
+      color: var(--c-bucket-fg);
+      line-height: calc(var(--bar-h) - 5px);
+    }
+
+    /* ─── Zoom bar ──────────────────────────────────── */
+    .zoom-bar {
+      position: fixed;
+      bottom: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 300;
+      background: #1e293b;
+      border-radius: 40px;
+      padding: 5px 7px;
+      display: flex;
+      align-items: center;
+      gap: 1px;
+      box-shadow: 0 4px 24px rgba(0,0,0,.4), 0 1px 4px rgba(0,0,0,.2);
+      user-select: none;
+    }
+
+    .zoom-action {
+      width: 30px; height: 30px;
+      border: none; background: transparent;
+      color: #fff; font-size: 22px; font-weight: 300; line-height: 1;
+      border-radius: 50%; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .12s;
+      flex-shrink: 0;
+    }
+    .zoom-action:hover { background: rgba(255,255,255,.18); }
+    .zoom-action:active { background: rgba(255,255,255,.28); }
+
+    .zoom-pct-btn {
+      min-width: 58px; height: 30px;
+      border: none; background: transparent;
+      color: #fff; font: 700 13px/1 var(--font);
+      border-radius: 6px; cursor: pointer;
+      transition: background .12s;
+      padding: 0 4px;
+    }
+    .zoom-pct-btn:hover { background: rgba(255,255,255,.18); }
+
+    .zoom-divider {
+      width: 1px; height: 18px;
+      background: rgba(255,255,255,.2);
+      flex-shrink: 0;
+      margin: 0 3px;
+    }
+
+    /* ─── Modal ─────────────────────────────────────── */
+    .modal-bg {
+      position: fixed;
+      inset: 0;
+      background: rgba(15,23,42,.55);
+      z-index: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(3px);
+    }
+    .modal-bg.hidden { display: none; }
+
+    .modal {
+      background: #fff;
+      border-radius: 12px;
+      padding: 22px 24px 20px;
+      width: 440px;
+      max-width: calc(100vw - 32px);
+      box-shadow: 0 24px 64px rgba(0,0,0,.22);
+    }
+
+    .modal-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .modal-ttl {
+      font: 800 16px/1 var(--font);
+      color: #1e3a5f;
+    }
+
+    .modal-date-lbl {
+      font: 500 12px/1 var(--font);
+      color: #64748b;
+      margin-top: 4px;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #94a3b8;
+      font-size: 20px;
+      line-height: 1;
+      padding: 0 4px;
+    }
+    .modal-close:hover { color: #475569; }
+
+    .form-row { display: flex; gap: 10px; margin-bottom: 12px; }
+
+    .fld { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+
+    .fld label {
+      font: 700 10px/1 var(--font);
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+    }
+
+    .fld input, .fld select {
+      padding: 8px 10px;
+      border: 1.5px solid #d1d9e4;
+      border-radius: 6px;
+      font: 500 13px/1 var(--font);
+      color: #1e293b;
+      outline: none;
+      width: 100%;
+    }
+    .fld input:focus, .fld select:focus { border-color: var(--c-holidays); }
+
+    .emoji-inp { font-size: 20px; text-align: center; width: 64px !important; flex: none; }
+
+    .modal-actions { display: flex; gap: 8px; margin-top: 18px; }
+
+    .btn-save {
+      flex: 1; padding: 9px;
+      background: #1e3a5f; color: #fff;
+      border: none; border-radius: 7px;
+      font: 700 13px/1 var(--font); cursor: pointer;
+    }
+    .btn-save:hover { background: #0f2040; }
+
+    .btn-del {
+      padding: 9px 14px;
+      background: #fee2e2; color: #dc2626;
+      border: none; border-radius: 7px;
+      font: 700 13px/1 var(--font); cursor: pointer;
+    }
+    .btn-del:hover { background: #fecaca; }
+
+    .btn-cancel {
+      padding: 9px 14px;
+      background: #f1f5f9; color: #475569;
+      border: none; border-radius: 7px;
+      font: 700 13px/1 var(--font); cursor: pointer;
+    }
+    .btn-cancel:hover { background: #e2e8f0; }
+
+    .hidden { display: none !important; }
+
+    .err-msg {
+      color: #dc2626;
+      font: 500 12px/1 var(--font);
+      margin-top: -8px;
+      margin-bottom: 4px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Page Header -->
+<div class="page-header" id="page-header">
+  <div class="header-left">
+    <div class="page-title">
+      <span class="title-year" id="title-year">2026</span> Year Planner
+    </div>
+    <div class="header-controls">
+      <div class="btn-group" id="yr-grp">
+        <button class="yr-btn" data-y="2026">2026</button>
+        <button class="yr-btn" data-y="2027">2027</button>
+        <button class="yr-btn" data-y="2028">2028</button>
+      </div>
+      <div class="sep"></div>
+      <div class="btn-group" id="cty-grp">
+        <button class="cty-btn" data-c="CA">🇨🇦 Canada</button>
+        <button class="cty-btn" data-c="US">🇺🇸 United States</button>
+      </div>
+      <div class="sep"></div>
+      <button class="export-btn" id="export-btn">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Export PNG
+      </button>
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="legend">
+    <div class="leg-item">
+      <span class="leg-swatch sw-adventures"></span>
+      <span class="leg-label">Adventures</span>
+    </div>
+    <div class="leg-item">
+      <span class="leg-swatch sw-holidays"></span>
+      <span class="leg-label">Holiday &amp; Trips</span>
+    </div>
+    <div class="leg-item">
+      <span class="leg-swatch sw-misogi"></span>
+      <span class="leg-label">Misogi</span>
+    </div>
+    <div class="leg-item">
+      <span class="leg-swatch sw-occasions"></span>
+      <span class="leg-label">Occasions &amp; Events</span>
+    </div>
+    <div class="leg-item">
+      <span class="leg-swatch sw-network"></span>
+      <span class="leg-label">Network/Career</span>
+    </div>
+    <div class="leg-item">
+      <span class="leg-swatch sw-bucketlist"></span>
+      <span class="leg-label">Bucket List</span>
+    </div>
+  </div>
+</div>
+
+<!-- Calendar (scrollable outer → zoomable scaler → grid) -->
+<div class="page-outer" id="page-outer">
+  <div id="page-scaler">
+    <div class="cal-wrap" id="cal-wrap">
+      <div class="cal-grid" id="cal-grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Zoom bar -->
+<div class="zoom-bar" id="zoom-bar">
+  <button class="zoom-action" id="zoom-out" title="Zoom out (Ctrl −)">−</button>
+  <div class="zoom-divider"></div>
+  <button class="zoom-pct-btn" id="zoom-pct" title="Reset to 100% (Ctrl 0)">100%</button>
+  <div class="zoom-divider"></div>
+  <button class="zoom-action" id="zoom-in" title="Zoom in (Ctrl +)">+</button>
+</div>
+
+<!-- Modal -->
+<div class="modal-bg hidden" id="modal-bg">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <div class="modal-ttl" id="modal-ttl">Add Event</div>
+        <div class="modal-date-lbl" id="modal-date-lbl"></div>
+      </div>
+      <button class="modal-close" id="modal-close" title="Close">&times;</button>
+    </div>
+
+    <div class="form-row">
+      <div class="fld" style="flex:none">
+        <label>Emoji</label>
+        <input type="text" id="f-emoji" class="emoji-inp" placeholder="🎉" maxlength="2">
+      </div>
+      <div class="fld">
+        <label>Title *</label>
+        <input type="text" id="f-title" placeholder="Event title…" maxlength="80">
+      </div>
+    </div>
+
+    <div id="title-err" class="err-msg hidden">Please enter a title.</div>
+
+    <div class="form-row">
+      <div class="fld">
+        <label>Category</label>
+        <select id="f-cat">
+          <option value="adventures">🟠 Adventures</option>
+          <option value="occasions">🟡 Occasions &amp; Events</option>
+          <option value="holidays">🔵 Holiday &amp; Trips</option>
+          <option value="network">🟢 Network / Career</option>
+          <option value="misogi">⬜ Misogi</option>
+          <option value="bucketlist">⬛ Bucket List</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="fld">
+        <label>Start Date</label>
+        <input type="date" id="f-start">
+      </div>
+      <div class="fld">
+        <label>End Date (optional)</label>
+        <input type="date" id="f-end">
+      </div>
+    </div>
+
+    <div id="date-err" class="err-msg hidden">End date must be on or after start date.</div>
+
+    <div class="modal-actions">
+      <button class="btn-save" id="btn-save">Save Event</button>
+      <button class="btn-del hidden" id="btn-del">Delete</button>
+      <button class="btn-cancel" id="btn-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Constants ────────────────────────────────────────────────
+const CELL_W  = 40;   // matches --cell-w
+const TRACK_H = 28;   // matches --track-h
+const BAR_H   = 26;   // matches --bar-h
+
+const MONTHS  = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+const MONTH_LG= ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DOW     = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+const ZOOM_MIN  = 0.3;
+const ZOOM_MAX  = 2.5;
+const ZOOM_STEP = 0.1;
+
+// ── State ────────────────────────────────────────────────────
+let curYear    = 2026;
+let curCountry = 'CA';
+let allEvents  = {};
+let editId     = null;
+let curZoom    = 1.0;
+
+// ── Utilities ────────────────────────────────────────────────
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+
+function daysInMonth(y, m) { return new Date(y, m + 1, 0).getDate(); }
+function getDOW(y, m, d)   { return new Date(y, m, d).getDay(); }
+
+function fmtDate(dt) {
+  const y = dt.getFullYear();
+  const m = String(dt.getMonth() + 1).padStart(2, '0');
+  const d = String(dt.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function parseDate(s) {
+  const [y, m, d] = s.split('-').map(Number);
+  return { year: y, month: m - 1, day: d };
+}
+
+function dateInt(s) { return s ? parseInt(s.replace(/-/g, ''), 10) : 0; }
+
+function padDate(y, m, d) {
+  return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+}
+
+function todayStr() {
+  const n = new Date();
+  return padDate(n.getFullYear(), n.getMonth(), n.getDate());
+}
+
+// ── Holiday Engine ───────────────────────────────────────────
+function easter(year) {
+  const a = year % 19,  b = Math.floor(year / 100), c = year % 100;
+  const d = Math.floor(b / 4), e = b % 4;
+  const f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4), k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31);
+  const day   = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(year, month - 1, day);
+}
+
+function nthWD(y, m, wd, n) {
+  const dim = daysInMonth(y, m);
+  if (n > 0) {
+    const fd = new Date(y, m, 1).getDay();
+    const day = 1 + ((wd - fd + 7) % 7) + (n - 1) * 7;
+    return day <= dim ? new Date(y, m, day) : null;
+  } else {
+    const ld  = new Date(y, m, dim).getDay();
+    return new Date(y, m, dim - ((ld - wd + 7) % 7));
+  }
+}
+
+function getHolidays(year, country) {
+  const list = [];
+  const add  = (dt, name) => dt && list.push({ date: fmtDate(dt), name });
+
+  const ea = easter(year);
+  const gf = new Date(ea); gf.setDate(ea.getDate() - 2);
+  const em = new Date(ea); em.setDate(ea.getDate() + 1);
+
+  if (country === 'CA') {
+    add(new Date(year, 0, 1),  "New Year's Day");
+    add(gf,                    "Good Friday");
+    add(em,                    "Easter Monday");
+    const may24dow = new Date(year, 4, 24).getDay();
+    const vicBack  = may24dow === 1 ? 0 : may24dow === 0 ? 6 : may24dow - 1;
+    add(new Date(year, 4, 24 - vicBack), "Victoria Day");
+    add(new Date(year, 6, 1),  "Canada Day");
+    add(nthWD(year, 8, 1, 1), "Labour Day");
+    add(nthWD(year, 9, 1, 2), "Thanksgiving");
+    add(new Date(year, 10,11), "Remembrance Day");
+    add(new Date(year, 11,25), "Christmas Day");
+    add(new Date(year, 11,26), "Boxing Day");
+  } else {
+    add(new Date(year, 0, 1),  "New Year's Day");
+    add(nthWD(year, 0, 1, 3), "MLK Jr. Day");
+    add(nthWD(year, 1, 1, 3), "Presidents' Day");
+    add(gf,                    "Good Friday");
+    add(nthWD(year, 4, 1,-1), "Memorial Day");
+    add(new Date(year, 5,19), "Juneteenth");
+    add(new Date(year, 6, 4),  "Independence Day");
+    add(nthWD(year, 8, 1, 1), "Labor Day");
+    add(nthWD(year, 9, 1, 2), "Columbus Day");
+    add(new Date(year, 10,11), "Veterans Day");
+    add(nthWD(year,10, 4, 4), "Thanksgiving");
+    add(new Date(year, 11,25), "Christmas Day");
+  }
+
+  return list;
+}
+
+// ── LocalStorage ─────────────────────────────────────────────
+function lsKey(y) { return `bac-planner-${y}`; }
+
+function loadAll() {
+  [2026, 2027, 2028].forEach(y => {
+    try { allEvents[y] = JSON.parse(localStorage.getItem(lsKey(y))) || []; }
+    catch { allEvents[y] = []; }
+  });
+}
+
+function persist(y) {
+  localStorage.setItem(lsKey(y), JSON.stringify(allEvents[y] || []));
+}
+
+// ── Track Assignment ─────────────────────────────────────────
+function assignTracks(bars) {
+  const sorted = [...bars].sort((a, b) => a.s - b.s || a.e - b.e);
+  const ends   = [];
+  for (const bar of sorted) {
+    let t = 0;
+    while (ends[t] !== undefined && ends[t] >= bar.s) t++;
+    bar.track = t;
+    ends[t]   = bar.e;
+  }
+  return { sorted, maxTracks: ends.length };
+}
+
+// ── Calendar Render ──────────────────────────────────────────
+function renderCalendar() {
+  const grid  = document.getElementById('cal-grid');
+  grid.innerHTML = '';
+
+  const hols = getHolidays(curYear, curCountry);
+  const hMap = {};
+  for (const h of hols) {
+    (hMap[h.date] = hMap[h.date] || []).push(h.name);
+  }
+
+  const uEvts = allEvents[curYear] || [];
+  const today = todayStr();
+
+  for (let m = 0; m < 12; m++) {
+    const dim    = daysInMonth(curYear, m);
+    const mStart = padDate(curYear, m, 1);
+    const mEnd   = padDate(curYear, m, dim);
+    const msInt  = dateInt(mStart);
+    const meInt  = dateInt(mEnd);
+
+    // Partition events
+    const bars       = [];
+    const chipsByDay = {};
+
+    for (const ev of uEvts) {
+      const evEnd = ev.endDate || ev.startDate;
+      const evSI  = dateInt(ev.startDate);
+      const evEI  = dateInt(evEnd);
+      if (evEI < msInt || evSI > meInt) continue;
+
+      const { year: sy, month: sm, day: sd } = parseDate(ev.startDate);
+      const { year: ey, month: em, day: ed } = parseDate(evEnd);
+
+      if (ev.endDate && ev.endDate !== ev.startDate) {
+        const bs = (sm === m && sy === curYear) ? sd : 1;
+        const be = (em === m && ey === curYear) ? ed : dim;
+        bars.push({ ...ev, s: bs, e: be });
+      } else {
+        (chipsByDay[sd] = chipsByDay[sd] || []).push(ev);
+      }
+    }
+
+    const { sorted: trackedBars, maxTracks } = bars.length
+      ? assignTracks(bars)
+      : { sorted: [], maxTracks: 0 };
+
+    const topPad = maxTracks * TRACK_H;
+
+    // Row
+    const row = document.createElement('div');
+    row.className = 'month-row';
+
+    // Month label
+    const lbl = document.createElement('div');
+    lbl.className = 'month-lbl';
+    lbl.textContent = MONTHS[m];
+    row.appendChild(lbl);
+
+    // Days area
+    const area = document.createElement('div');
+    area.className = 'days-area';
+
+    // Event bars layer
+    const evLyr = document.createElement('div');
+    evLyr.className = 'ev-layer';
+    evLyr.style.height = topPad + 'px';
+
+    for (const bar of trackedBars) {
+      const barEl = document.createElement('div');
+      barEl.className = `ev-bar cat-${bar.category}`;
+      barEl.style.left  = ((bar.s - 1) * CELL_W + 1) + 'px';
+      barEl.style.width = ((bar.e - bar.s + 1) * CELL_W - 2) + 'px';
+      barEl.style.top   = (bar.track * TRACK_H + 1) + 'px';
+      barEl.textContent = (bar.emoji ? bar.emoji + ' ' : '') + bar.title;
+      barEl.title       = bar.title;
+      barEl.addEventListener('click', e => {
+        e.stopPropagation();
+        openModal(bar.startDate, bar);
+      });
+      evLyr.appendChild(barEl);
+    }
+
+    area.appendChild(evLyr);
+
+    // Cells row
+    const cells = document.createElement('div');
+    cells.className = 'cells-row';
+    cells.style.marginTop = topPad + 'px';
+
+    for (let d = 1; d <= 31; d++) {
+      const cell = document.createElement('div');
+      cell.className = 'day-cell';
+
+      if (d > dim) {
+        cell.classList.add('inactive');
+        // Still show a header label for continuity
+        const hdr = document.createElement('div');
+        hdr.className = 'cell-hdr';
+        const txt = document.createElement('span');
+        txt.className = 'cell-hdr-txt';
+        txt.textContent = d;
+        hdr.appendChild(txt);
+        cell.appendChild(hdr);
+        cells.appendChild(cell);
+        continue;
+      }
+
+      const dow     = getDOW(curYear, m, d);
+      const dateStr = padDate(curYear, m, d);
+
+      if (dow === 0 || dow === 6) cell.classList.add('weekend');
+      if (dateStr === today)      cell.classList.add('today');
+
+      cell.dataset.date = dateStr;
+      cell.addEventListener('click', () => openModal(dateStr, null));
+
+      // Cell header: "Thu 1"
+      const hdr = document.createElement('div');
+      hdr.className = 'cell-hdr';
+      const txt = document.createElement('span');
+      txt.className = 'cell-hdr-txt';
+      txt.textContent = DOW[dow] + ' ' + d;
+      hdr.appendChild(txt);
+      cell.appendChild(hdr);
+
+      // Events area
+      const evArea = document.createElement('div');
+      evArea.className = 'cell-evs';
+
+      if (hMap[dateStr]) {
+        for (const name of hMap[dateStr]) {
+          const chip = document.createElement('div');
+          chip.className = 'chip cat-holidays';
+          chip.textContent = name;
+          chip.title = name;
+          evArea.appendChild(chip);
+        }
+      }
+
+      if (chipsByDay[d]) {
+        for (const ev of chipsByDay[d]) {
+          const chip = document.createElement('div');
+          chip.className = `chip cat-${ev.category}`;
+          chip.textContent = (ev.emoji ? ev.emoji + ' ' : '') + ev.title;
+          chip.title = ev.title;
+          chip.addEventListener('click', e => {
+            e.stopPropagation();
+            openModal(dateStr, ev);
+          });
+          evArea.appendChild(chip);
+        }
+      }
+
+      cell.appendChild(evArea);
+      cells.appendChild(cell);
+    }
+
+    area.appendChild(cells);
+    row.appendChild(area);
+    grid.appendChild(row);
+  }
+}
+
+// ── Modal ────────────────────────────────────────────────────
+function openModal(dateStr, ev) {
+  editId = ev ? ev.id : null;
+
+  const { year, month, day } = parseDate(dateStr);
+  document.getElementById('modal-ttl').textContent = ev ? 'Edit Event' : 'Add Event';
+  document.getElementById('modal-date-lbl').textContent =
+    `${MONTH_LG[month]} ${day}, ${year}`;
+
+  document.getElementById('f-emoji').value = ev?.emoji    || '';
+  document.getElementById('f-title').value = ev?.title    || '';
+  document.getElementById('f-cat').value   = ev?.category || 'adventures';
+  document.getElementById('f-start').value = ev?.startDate || dateStr;
+  document.getElementById('f-end').value   = ev?.endDate   || '';
+
+  document.getElementById('btn-del').classList.toggle('hidden', !ev);
+  document.getElementById('title-err').classList.add('hidden');
+  document.getElementById('date-err').classList.add('hidden');
+  document.getElementById('modal-bg').classList.remove('hidden');
+  document.getElementById('f-title').focus();
+}
+
+function closeModal() {
+  document.getElementById('modal-bg').classList.add('hidden');
+  editId = null;
+}
+
+function saveEvent() {
+  const title = document.getElementById('f-title').value.trim();
+  const start = document.getElementById('f-start').value;
+  const end   = document.getElementById('f-end').value || null;
+  const emoji = document.getElementById('f-emoji').value.trim() || null;
+  const cat   = document.getElementById('f-cat').value;
+
+  let ok = true;
+  if (!title) {
+    document.getElementById('title-err').classList.remove('hidden');
+    document.getElementById('f-title').focus();
+    ok = false;
+  } else {
+    document.getElementById('title-err').classList.add('hidden');
+  }
+  if (end && start && dateInt(end) < dateInt(start)) {
+    document.getElementById('date-err').classList.remove('hidden');
+    ok = false;
+  } else {
+    document.getElementById('date-err').classList.add('hidden');
+  }
+  if (!ok) return;
+
+  const { year } = parseDate(start);
+  if (!allEvents[year]) allEvents[year] = [];
+
+  if (editId) {
+    const idx = allEvents[year].findIndex(e => e.id === editId);
+    if (idx >= 0)
+      allEvents[year][idx] = { id: editId, title, category: cat, startDate: start, endDate: end, emoji };
+  } else {
+    allEvents[year].push({ id: uid(), title, category: cat, startDate: start, endDate: end, emoji });
+  }
+
+  persist(year);
+  closeModal();
+  if (year === curYear) renderCalendar();
+}
+
+function deleteEvent() {
+  if (!editId) return;
+  const start = document.getElementById('f-start').value;
+  if (!start) return;
+  const { year } = parseDate(start);
+  allEvents[year] = (allEvents[year] || []).filter(e => e.id !== editId);
+  persist(year);
+  closeModal();
+  if (year === curYear) renderCalendar();
+}
+
+// ── Export PNG ───────────────────────────────────────────────
+function exportPNG() {
+  const btn = document.getElementById('export-btn');
+  btn.disabled = true;
+  btn.textContent = 'Generating…';
+
+  // Temporarily reset zoom to 1 so export is always full-resolution
+  const savedZoom = curZoom;
+  const scaler    = document.getElementById('page-scaler');
+  scaler.style.zoom = 1;
+
+  // Measure at zoom = 1
+  const pageHeader = document.getElementById('page-header');
+  const calWrap    = document.getElementById('cal-wrap');
+  const totalW     = Math.max(pageHeader.scrollWidth, calWrap.scrollWidth);
+  const totalH     = pageHeader.offsetHeight + calWrap.scrollHeight;
+
+  html2canvas(document.body, {
+    scale: 2,
+    useCORS: true,
+    backgroundColor: '#e8ecf1',
+    x: 0, y: 0,
+    width:  totalW,
+    height: totalH,
+    scrollX: 0,
+    scrollY: 0,
+    windowWidth:  totalW,
+    windowHeight: totalH
+  }).then(canvas => {
+    const a = document.createElement('a');
+    a.download = `year-planner-${curYear}.png`;
+    a.href     = canvas.toDataURL('image/png');
+    a.click();
+  }).finally(() => {
+    // Restore zoom
+    scaler.style.zoom = savedZoom;
+    btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Export PNG`;
+    btn.disabled = false;
+  });
+}
+
+// ── Controls ─────────────────────────────────────────────────
+function setYear(y) {
+  curYear = y;
+  document.getElementById('title-year').textContent = y;
+  document.querySelectorAll('.yr-btn').forEach(b =>
+    b.classList.toggle('active', +b.dataset.y === y));
+  renderCalendar();
+}
+
+function setCountry(c) {
+  curCountry = c;
+  document.querySelectorAll('.cty-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.c === c));
+  renderCalendar();
+}
+
+document.querySelectorAll('.yr-btn').forEach(b =>
+  b.addEventListener('click', () => setYear(+b.dataset.y)));
+
+document.querySelectorAll('.cty-btn').forEach(b =>
+  b.addEventListener('click', () => setCountry(b.dataset.c)));
+
+document.getElementById('export-btn').addEventListener('click', exportPNG);
+document.getElementById('btn-save').addEventListener('click', saveEvent);
+document.getElementById('btn-del').addEventListener('click', deleteEvent);
+document.getElementById('btn-cancel').addEventListener('click', closeModal);
+document.getElementById('modal-close').addEventListener('click', closeModal);
+
+document.getElementById('modal-bg').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal-bg')) closeModal();
+});
+
+document.addEventListener('keydown', e => {
+  const modalOpen = !document.getElementById('modal-bg').classList.contains('hidden');
+
+  // Modal shortcuts
+  if (modalOpen) {
+    if (e.key === 'Escape') closeModal();
+    if (e.key === 'Enter' && document.activeElement.tagName !== 'BUTTON'
+        && document.activeElement.tagName !== 'SELECT') saveEvent();
+    return;
+  }
+
+  // Zoom keyboard shortcuts (Ctrl/Cmd)
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); setZoom(curZoom + ZOOM_STEP); }
+    if (e.key === '-' || e.key === '_') { e.preventDefault(); setZoom(curZoom - ZOOM_STEP); }
+    if (e.key === '0')                  { e.preventDefault(); setZoom(1); }
+  }
+});
+
+// ── Zoom ─────────────────────────────────────────────────────
+function setZoom(z) {
+  curZoom = Math.round(Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, z)) * 100) / 100;
+  document.getElementById('page-scaler').style.zoom = curZoom;
+  document.getElementById('zoom-pct').textContent   = Math.round(curZoom * 100) + '%';
+}
+
+// Zoom bar buttons
+document.getElementById('zoom-in') .addEventListener('click', () => setZoom(curZoom + ZOOM_STEP));
+document.getElementById('zoom-out').addEventListener('click', () => setZoom(curZoom - ZOOM_STEP));
+document.getElementById('zoom-pct').addEventListener('click', () => setZoom(1));
+
+// Ctrl/Cmd + scroll wheel
+window.addEventListener('wheel', e => {
+  if (!e.ctrlKey && !e.metaKey) return;
+  e.preventDefault();
+  // Smaller delta for trackpad (deltaMode 0), larger for mouse wheel
+  const step = Math.abs(e.deltaY) < 50 ? ZOOM_STEP * 0.5 : ZOOM_STEP;
+  setZoom(curZoom + (e.deltaY < 0 ? step : -step));
+}, { passive: false });
+
+// ── Init ─────────────────────────────────────────────────────
+loadAll();
+setYear(2026);
+setCountry('CA');
+setZoom(1);
+</script>
+</body>
+</html>
