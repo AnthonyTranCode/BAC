@@ -759,10 +759,6 @@
     </div>
 
     <div class="form-row">
-      <div class="fld" style="flex:none">
-        <label>Emoji</label>
-        <input type="text" id="f-emoji" class="emoji-inp" placeholder="🎉" maxlength="2">
-      </div>
       <div class="fld">
         <label>Title *</label>
         <input type="text" id="f-title" placeholder="Event title…" maxlength="80">
@@ -1195,7 +1191,6 @@ function openModal(dateStr, ev) {
   document.getElementById('modal-date-lbl').textContent =
     `${MONTH_LG[month]} ${day}, ${year}`;
 
-  document.getElementById('f-emoji').value = ev?.emoji    || '';
   document.getElementById('f-title').value = ev?.title    || '';
   document.getElementById('f-cat').value   = ev?.category || 'adventures';
   document.getElementById('f-start').value = ev?.startDate || dateStr;
@@ -1217,7 +1212,7 @@ function saveEvent() {
   const title = document.getElementById('f-title').value.trim();
   const start = document.getElementById('f-start').value;
   const end   = document.getElementById('f-end').value || null;
-  const emoji = document.getElementById('f-emoji').value.trim() || null;
+  const emoji = null;
   const cat   = document.getElementById('f-cat').value;
 
   let ok = true;
