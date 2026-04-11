@@ -13,7 +13,7 @@
     :root {
       --cell-w:      57px;
       --label-w:     76px;
-      --cell-min-h:  48px;
+      --cell-h:      60px;
       --track-h:     28px;
       --bar-h:       26px;
       --font:        'Trebuchet MS', Inter, system-ui, sans-serif;
@@ -199,6 +199,15 @@
       position: relative;
       display: flex;
       flex-direction: column;
+      z-index: 0; /* stacking context so wknd-col z-index:-1 is scoped here */
+    }
+
+    .wknd-col {
+      position: absolute;
+      top: 0; bottom: 0;
+      background: rgba(186, 202, 220, 0.42);
+      z-index: -1;
+      pointer-events: none;
     }
 
     /* Absolutely-positioned multi-day bars — overlays cells below the date header */
@@ -216,7 +225,8 @@
 
     .day-cell {
       width: var(--cell-w);
-      min-height: var(--cell-min-h);
+      height: var(--cell-h);
+      overflow: hidden;
       flex-shrink: 0;
       background: var(--bg-cell);
       border: 1px solid var(--border);
@@ -225,12 +235,11 @@
       display: flex;
       flex-direction: column;
       transition: background .1s;
-      overflow: hidden;
     }
 
     .day-cell:last-child { border-radius: 0 5px 5px 0; }
     .day-cell:hover:not(.inactive) { background: #f0f7ff !important; }
-    .day-cell.weekend  { background: var(--bg-weekend); }
+    .day-cell.weekend  { background: transparent; }
     .day-cell.inactive { background: var(--bg-inactive) !important; cursor: default; }
 
 
@@ -267,13 +276,13 @@
       font: 700 8px/1 var(--font);
       padding: 2px 3px;
       border-radius: 3px;
-      white-space: nowrap;
       overflow: hidden;
       cursor: grab;
       pointer-events: auto;
       text-transform: uppercase;
       letter-spacing: .2px;
       min-height: 13px;
+      flex: 1;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -673,6 +682,128 @@
       text-underline-offset: 2px;
     }
     .setup-cancel-link:hover { color: #64748b; }
+
+    /* ─── Category Manager ──────────────────────── */
+    .cat-mgr-btn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 12px;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 20px;
+      background: #f8fafc;
+      color: #475569;
+      font: 600 12px/1 var(--font);
+      cursor: pointer;
+      transition: all .13s;
+      flex-shrink: 0;
+    }
+    .cat-mgr-btn:hover { border-color: #94a3b8; background: #f1f5f9; color: #1e293b; }
+
+    .cat-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 0;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .cat-row:last-child { border-bottom: none; }
+
+    .cat-color-inp {
+      width: 32px; height: 32px;
+      border-radius: 6px;
+      border: 2px solid #e2e8f0;
+      cursor: pointer;
+      padding: 2px;
+      flex-shrink: 0;
+      background: none;
+    }
+
+    .cat-name-inp {
+      flex: 1;
+      padding: 7px 10px;
+      border: 1.5px solid #d1d9e4;
+      border-radius: 6px;
+      font: 400 13px/1 var(--font);
+      color: #1e293b;
+      outline: none;
+      min-width: 0;
+    }
+    .cat-name-inp:focus { border-color: #0891b2; }
+
+    .cat-style-grp {
+      display: flex;
+      border: 1.5px solid #d1d9e4;
+      border-radius: 6px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .cat-style-btn {
+      padding: 6px 10px;
+      font: 700 10px/1 var(--font);
+      text-transform: uppercase;
+      letter-spacing: .3px;
+      border: none;
+      background: #f8fafc;
+      color: #64748b;
+      cursor: pointer;
+      transition: all .12s;
+    }
+    .cat-style-btn.active { background: #1e3a5f; color: #fff; }
+    .cat-style-btn:not(.active):hover { background: #f1f5f9; color: #475569; }
+
+    .cat-del-btn {
+      background: none;
+      border: none;
+      font-size: 15px;
+      cursor: pointer;
+      color: #cbd5e1;
+      padding: 4px 6px;
+      border-radius: 4px;
+      transition: all .12s;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+    .cat-del-btn:not(:disabled):hover { color: #dc2626; background: #fee2e2; }
+    .cat-del-btn:disabled { opacity: .3; cursor: default; }
+
+    .cat-usage-warn {
+      font: 400 10px/1 var(--font);
+      color: #f59e0b;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* ─── Holiday Manager ────────────────────────── */
+    .hol-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 0;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .hol-date {
+      font: 600 12px/1 var(--font);
+      color: #64748b;
+      min-width: 54px;
+      flex-shrink: 0;
+    }
+    .hol-name {
+      flex: 1;
+      font: 400 13px/1.3 var(--font);
+      color: #1e293b;
+    }
+    .hol-del-btn {
+      background: none;
+      border: none;
+      font-size: 14px;
+      cursor: pointer;
+      color: #94a3b8;
+      padding: 4px;
+      flex-shrink: 0;
+      border-radius: 4px;
+    }
+    .hol-del-btn:hover { color: #dc2626; background: #fee2e2; }
   </style>
 </head>
 <body>
@@ -689,6 +820,10 @@
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
       </button>
       <div class="sep"></div>
+      <button class="cat-mgr-btn" id="cat-mgr-btn" title="Manage categories">✏️ Categories</button>
+      <div class="sep"></div>
+      <button class="cat-mgr-btn" id="hol-mgr-btn" title="Manage stat holidays">📅 Holidays</button>
+      <div class="sep"></div>
       <button class="export-btn" id="export-btn">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -700,33 +835,8 @@
     </div>
   </div>
 
-  <!-- Legend -->
-  <div class="legend">
-    <div class="leg-item">
-      <span class="leg-swatch sw-adventures"></span>
-      <span class="leg-label">Adventures</span>
-    </div>
-    <div class="leg-item">
-      <span class="leg-swatch sw-holidays"></span>
-      <span class="leg-label">Holiday &amp; Trips</span>
-    </div>
-    <div class="leg-item">
-      <span class="leg-swatch sw-misogi"></span>
-      <span class="leg-label">Misogi</span>
-    </div>
-    <div class="leg-item">
-      <span class="leg-swatch sw-occasions"></span>
-      <span class="leg-label">Occasions &amp; Events</span>
-    </div>
-    <div class="leg-item">
-      <span class="leg-swatch sw-network"></span>
-      <span class="leg-label">Network/Career</span>
-    </div>
-    <div class="leg-item">
-      <span class="leg-swatch sw-bucketlist"></span>
-      <span class="leg-label">Bucket List</span>
-    </div>
-  </div>
+  <!-- Legend (populated dynamically by renderLegend()) -->
+  <div class="legend" id="legend"></div>
 </div>
 
 <!-- Calendar (scrollable outer → zoomable scaler → grid) -->
@@ -745,6 +855,38 @@
   <button class="zoom-pct-btn" id="zoom-pct" title="Reset to 100% (Ctrl 0)">100%</button>
   <div class="zoom-divider"></div>
   <button class="zoom-action" id="zoom-in" title="Zoom in (Ctrl +)">+</button>
+</div>
+
+<!-- Holiday Manager Modal -->
+<div class="modal-bg hidden" id="hol-manager-bg">
+  <div class="modal" style="width:460px;max-width:96vw">
+    <div class="modal-head">
+      <div class="modal-ttl">Stat Holidays — <span id="hol-mgr-label"></span></div>
+      <button class="modal-close" id="hol-mgr-close">×</button>
+    </div>
+    <div id="hol-list" style="max-height:320px;overflow-y:auto"></div>
+    <div style="margin-top:14px;display:flex;gap:8px;align-items:center">
+      <input type="date"  id="hol-add-date" style="padding:7px 8px;border:1.5px solid #d1d9e4;border-radius:6px;font:400 12px/1 var(--font);color:#1e293b;flex-shrink:0">
+      <input type="text"  id="hol-add-name" placeholder="Holiday name…" maxlength="60"
+             style="flex:1;padding:7px 10px;border:1.5px solid #d1d9e4;border-radius:6px;font:400 13px/1 var(--font);color:#1e293b">
+      <button class="btn-save" id="hol-add-btn" style="flex-shrink:0;padding:7px 14px">+ Add</button>
+    </div>
+  </div>
+</div>
+
+<!-- Category Manager Modal -->
+<div class="modal-bg hidden" id="cat-manager-bg">
+  <div class="modal" style="width:520px;max-width:96vw">
+    <div class="modal-head">
+      <div class="modal-ttl">Manage Categories</div>
+      <button class="modal-close" id="cat-mgr-close">×</button>
+    </div>
+    <div id="cat-list"></div>
+    <div class="modal-actions" style="margin-top:16px">
+      <button class="btn-cancel" id="cat-add-btn">+ Add Category</button>
+      <button class="btn-save"   id="cat-save-btn">Save Changes</button>
+    </div>
+  </div>
 </div>
 
 <!-- Modal -->
@@ -770,14 +912,7 @@
     <div class="form-row">
       <div class="fld">
         <label>Category</label>
-        <select id="f-cat">
-          <option value="adventures">🟠 Adventures</option>
-          <option value="occasions">🟡 Occasions &amp; Events</option>
-          <option value="holidays">🔵 Holiday &amp; Trips</option>
-          <option value="network">🟢 Network / Career</option>
-          <option value="misogi">⬜ Misogi</option>
-          <option value="bucketlist">⬛ Bucket List</option>
-        </select>
+        <select id="f-cat"><!-- populated by renderCatSelect() --></select>
       </div>
     </div>
 
@@ -979,7 +1114,7 @@ function renderCalendar() {
   const grid  = document.getElementById('cal-grid');
   grid.innerHTML = '';
 
-  const hols = getHolidays(curYear, curCountry);
+  const hols = loadHolidayList(curYear, curCountry);
   const hMap = {};
   for (const h of hols) {
     (hMap[h.date] = hMap[h.date] || []).push(h.name);
@@ -987,6 +1122,46 @@ function renderCalendar() {
 
   const uEvts = allEvents[curYear] || [];
   const today = todayStr();
+
+  // Pre-scan all months to find the uniform cell height needed to fit the busiest day
+  const MIN_CHIP_H = 18;  // minimum readable chip height in px
+  let uniformCellH = 40;  // absolute floor
+  for (let pm = 0; pm < 12; pm++) {
+    const pdim   = daysInMonth(curYear, pm);
+    const pmsInt = dateInt(padDate(curYear, pm, 1));
+    const pmeInt = dateInt(padDate(curYear, pm, pdim));
+    const pBars = [], pChips = {};
+    for (const ev of uEvts) {
+      const evEnd = ev.endDate || ev.startDate;
+      if (dateInt(evEnd) < pmsInt || dateInt(ev.startDate) > pmeInt) continue;
+      const { year: sy, month: sm, day: sd } = parseDate(ev.startDate);
+      const { year: ey, month: em, day: ed } = parseDate(evEnd);
+      if (ev.endDate && ev.endDate !== ev.startDate) {
+        pBars.push({ s: (sm === pm && sy === curYear) ? sd : 1,
+                     e: (em === pm && ey === curYear) ? ed : pdim });
+      } else {
+        (pChips[sd] = pChips[sd] || []).push(ev);
+      }
+    }
+    const { sorted: pTracked } = pBars.length ? assignTracks(pBars) : { sorted: [], maxTracks: 0 };
+    // Per-day track counts for this month
+    const pDayTracks = {};
+    for (const bar of pTracked) {
+      for (let d = bar.s; d <= bar.e; d++) {
+        pDayTracks[d] = Math.max(pDayTracks[d] || 0, bar.track + 1);
+      }
+    }
+    // Find the day that needs the most vertical space
+    for (let d = 1; d <= pdim; d++) {
+      const ds       = padDate(curYear, pm, d);
+      const cnt      = (hMap[ds]?.length || 0) + (pChips[d]?.length || 0);
+      const tracks   = pDayTracks[d] || 0;
+      const padTop   = tracks > 0 ? tracks * TRACK_H + 4 : 0;
+      const chipN    = Math.max(1, cnt);
+      const pH = CELL_HDR_H + 1 + padTop + 3 + chipN * MIN_CHIP_H + (chipN - 1) * 2;
+      if (pH > uniformCellH) uniformCellH = pH;
+    }
+  }
 
   for (let m = 0; m < 12; m++) {
     const dim    = daysInMonth(curYear, m);
@@ -1017,14 +1192,17 @@ function renderCalendar() {
       }
     }
 
-    const { sorted: trackedBars, maxTracks } = bars.length
+    const { sorted: trackedBars } = bars.length
       ? assignTracks(bars)
       : { sorted: [], maxTracks: 0 };
 
-    // Cell height must accommodate header (≈18px) + bar tracks + chip space
-    const cellMinH = Math.max(48, CELL_HDR_H + maxTracks * TRACK_H + 24);
-    // Chips start below the last bar track
-    const chipPadTop = maxTracks > 0 ? maxTracks * TRACK_H + 4 : 0;
+    // Per-day track counts so only cells under a bar get top padding
+    const dayTracks = {};
+    for (const bar of trackedBars) {
+      for (let d = bar.s; d <= bar.e; d++) {
+        dayTracks[d] = Math.max(dayTracks[d] || 0, bar.track + 1);
+      }
+    }
 
     // Row
     const row = document.createElement('div');
@@ -1040,6 +1218,18 @@ function renderCalendar() {
     const area = document.createElement('div');
     area.className = 'days-area';
 
+    // Weekend column bands — full-height behind cells (all 31 positions incl. inactive)
+    for (let d = 1; d <= 31; d++) {
+      const dow = getDOW(curYear, m, d);  // rolls into next month for d > dim, giving correct DOW for that grid position
+      if (dow === 0 || dow === 6) {
+        const band = document.createElement('div');
+        band.className = 'wknd-col';
+        band.style.left  = ((d - 1) * CELL_W) + 'px';
+        band.style.width = CELL_W + 'px';
+        area.appendChild(band);
+      }
+    }
+
     // Event bars layer (built first, appended after cells so z-index works cleanly)
     const evLyr = document.createElement('div');
     evLyr.className = 'ev-layer';
@@ -1052,6 +1242,7 @@ function renderCalendar() {
       barEl.style.top   = (bar.track * TRACK_H + 1) + 'px';
       barEl.textContent = (bar.emoji ? bar.emoji + ' ' : '') + bar.title;
       barEl.title       = bar.title;
+      applyCatStyle(barEl, bar.category);
 
       // mousedown drives both click (no movement) and drag (movement)
       barEl.addEventListener('mousedown', e => {
@@ -1085,8 +1276,7 @@ function renderCalendar() {
     for (let d = 1; d <= 31; d++) {
       const cell = document.createElement('div');
       cell.className = 'day-cell';
-      cell.style.minHeight = cellMinH + 'px';
-
+      cell.style.height = uniformCellH + 'px';
       if (d > dim) {
         cell.classList.add('inactive');
         const hdr = document.createElement('div');
@@ -1118,15 +1308,19 @@ function renderCalendar() {
       hdr.appendChild(txt);
       cell.appendChild(hdr);
 
-      // Events area — top padding pushes chips below the inline bars
+      // Events area — top padding only on days where a bar actually overlaps
       const evArea = document.createElement('div');
       evArea.className = 'cell-evs';
-      if (chipPadTop) evArea.style.paddingTop = chipPadTop + 'px';
+      const dayCellPadTop = (dayTracks[d] || 0) > 0 ? (dayTracks[d] * TRACK_H + 4) : 0;
+      if (dayCellPadTop) evArea.style.paddingTop = dayCellPadTop + 'px';
 
       if (hMap[dateStr]) {
         for (const name of hMap[dateStr]) {
           const chip = document.createElement('div');
           chip.className = 'chip cat-holidays';
+          chip.style.background = '#b0b8c4';
+          chip.style.color      = '#fff';
+          chip.style.border     = '';
           chip.textContent = name;
           chip.title = name;
           evArea.appendChild(chip);
@@ -1137,6 +1331,7 @@ function renderCalendar() {
         for (const ev of chipsByDay[d]) {
           const chip = document.createElement('div');
           chip.className = `chip cat-${ev.category}`;
+          applyCatStyle(chip, ev.category);
           chip.textContent = (ev.emoji ? ev.emoji + ' ' : '') + ev.title;
           chip.title = ev.title;
 
@@ -1445,14 +1640,14 @@ function onChipDragMove(e) {
   ghost.style.left = (e.clientX - offsetX) + 'px';
   ghost.style.top  = (e.clientY - offsetY) + 'px';
 
-  // Highlight target cell
+  // Highlight target cell — use elementsFromPoint to see through ev-bars
   ghost.style.display = 'none';
-  const el = document.elementFromPoint(e.clientX, e.clientY);
+  const els = document.elementsFromPoint(e.clientX, e.clientY);
   ghost.style.display = '';
-  const cell = el && el.closest('[data-date]');
+  const cell = els.find(x => x.dataset?.date && !x.classList.contains('inactive')) || null;
   if (cell !== chipDragState.lastTarget) {
     if (chipDragState.lastTarget) chipDragState.lastTarget.classList.remove('drop-target');
-    if (cell && !cell.classList.contains('inactive')) {
+    if (cell) {
       cell.classList.add('drop-target');
       chipDragState.lastTarget = cell;
     } else {
@@ -1574,6 +1769,237 @@ function onChipResizeEnd(e) {
   renderCalendar();
 }
 
+// ── Categories ───────────────────────────────────────────────
+const DEFAULT_CATEGORIES = [
+  { id: 'adventures', label: 'Adventures',         color: '#f97316', style: 'solid'  },
+  { id: 'occasions',  label: 'Occasions & Events', color: '#eab308', style: 'solid'  },
+  { id: 'holidays',   label: 'Holiday & Trips',    color: '#0891b2', style: 'solid'  },
+  { id: 'network',    label: 'Network/Career',     color: '#16a34a', style: 'solid'  },
+  { id: 'misogi',     label: 'Misogi',             color: '#dc2626', style: 'dashed' },
+  { id: 'bucketlist', label: 'Bucket List',        color: '#1e293b', style: 'dashed' },
+];
+
+let categories = [];
+
+function loadCategories() {
+  try {
+    const stored = JSON.parse(localStorage.getItem('bac-categories'));
+    categories = (Array.isArray(stored) && stored.length) ? stored : DEFAULT_CATEGORIES.map(c => ({ ...c }));
+  } catch { categories = DEFAULT_CATEGORIES.map(c => ({ ...c })); }
+}
+
+function persistCategories() {
+  localStorage.setItem('bac-categories', JSON.stringify(categories));
+}
+
+// ── Stat Holidays ─────────────────────────────────────────────
+function holKey(y, c) { return `bac-holidays-${y}-${c}`; }
+
+function loadHolidayList(year, country) {
+  try {
+    const stored = localStorage.getItem(holKey(year, country));
+    if (stored) return JSON.parse(stored);
+  } catch {}
+  // First time: seed from built-in list
+  const defaults = getHolidays(year, country);
+  localStorage.setItem(holKey(year, country), JSON.stringify(defaults));
+  return defaults;
+}
+
+function persistHolidayList(year, country, list) {
+  localStorage.setItem(holKey(year, country), JSON.stringify(list));
+}
+
+function openHolManager() {
+  document.getElementById('hol-mgr-label').textContent =
+    `${curYear} · ${curCountry === 'CA' ? '🇨🇦 Canada' : '🇺🇸 United States'}`;
+  renderHolList();
+  document.getElementById('hol-manager-bg').classList.remove('hidden');
+}
+
+function closeHolManager() {
+  document.getElementById('hol-manager-bg').classList.add('hidden');
+}
+
+function renderHolList() {
+  const list  = loadHolidayList(curYear, curCountry);
+  const el    = document.getElementById('hol-list');
+  if (!list.length) {
+    el.innerHTML = '<p style="color:#94a3b8;font:400 12px/1 var(--font);padding:8px 0">No holidays defined.</p>';
+    return;
+  }
+  el.innerHTML = list
+    .slice()
+    .sort((a, b) => a.date < b.date ? -1 : 1)
+    .map((h, i) => `
+      <div class="hol-row">
+        <span class="hol-date">${formatHolDate(h.date)}</span>
+        <span class="hol-name">${h.name}</span>
+        <button class="hol-del-btn" data-date="${h.date}" data-name="${h.name.replace(/"/g,'&quot;')}" title="Remove">🗑</button>
+      </div>`)
+    .join('');
+  el.querySelectorAll('.hol-del-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const cur = loadHolidayList(curYear, curCountry);
+      const updated = cur.filter(h => !(h.date === btn.dataset.date && h.name === btn.dataset.name));
+      persistHolidayList(curYear, curCountry, updated);
+      renderHolList();
+      renderCalendar();
+    });
+  });
+}
+
+function formatHolDate(dateStr) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function addHoliday() {
+  const dateInp = document.getElementById('hol-add-date');
+  const nameInp = document.getElementById('hol-add-name');
+  const date    = dateInp.value;
+  const name    = nameInp.value.trim();
+  if (!date || !name) { nameInp.focus(); return; }
+  const list = loadHolidayList(curYear, curCountry);
+  list.push({ date, name });
+  persistHolidayList(curYear, curCountry, list);
+  dateInp.value = '';
+  nameInp.value = '';
+  renderHolList();
+  renderCalendar();
+}
+
+function getCat(id) { return categories.find(c => c.id === id); }
+
+function isLight(hex) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return (r * 299 + g * 587 + b * 114) / 1000 > 155;
+}
+
+function applyCatStyle(el, catId) {
+  const cat = getCat(catId);
+  if (!cat) {
+    el.style.background = '#94a3b8';
+    el.style.border     = '';
+    el.style.color      = '#fff';
+    return;
+  }
+  if (cat.style === 'dashed') {
+    el.style.background = 'transparent';
+    el.style.border     = `2px dashed ${cat.color}`;
+    el.style.color      = cat.color;
+  } else {
+    el.style.background = cat.color;
+    el.style.border     = '';
+    el.style.color      = isLight(cat.color) ? '#1e293b' : '#fff';
+  }
+}
+
+function renderLegend() {
+  const el = document.getElementById('legend');
+  if (!el) return;
+  el.innerHTML = categories.map(cat => {
+    const swStyle = cat.style === 'dashed'
+      ? `background:transparent;border:2.5px dashed ${cat.color};`
+      : `background:${cat.color};`;
+    return `<div class="leg-item">
+      <span class="leg-swatch" style="${swStyle}"></span>
+      <span class="leg-label">${cat.label}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderCatSelect() {
+  const sel = document.getElementById('f-cat');
+  if (!sel) return;
+  const prev = sel.value;
+  sel.innerHTML = categories.map(c => `<option value="${c.id}">${c.label}</option>`).join('');
+  if (categories.find(c => c.id === prev)) sel.value = prev;
+}
+
+// ── Category Manager ─────────────────────────────────────────
+let stagedCats = [];
+
+function openCatManager() {
+  stagedCats = categories.map(c => ({ ...c }));
+  renderCatManager();
+  document.getElementById('cat-manager-bg').classList.remove('hidden');
+}
+
+function closeCatManager() {
+  document.getElementById('cat-manager-bg').classList.add('hidden');
+}
+
+function renderCatManager() {
+  const list = document.getElementById('cat-list');
+  if (!list) return;
+  const allYears = [2026, 2027, 2028];
+  list.innerHTML = stagedCats.map((cat, i) => {
+    const usage = allYears.flatMap(y => allEvents[y] || []).filter(e => e.category === cat.id).length;
+    const warnHtml = usage > 0 ? `<span class="cat-usage-warn">${usage} event${usage > 1 ? 's' : ''} use this</span>` : '';
+    const solidActive  = cat.style === 'solid'  ? ' active' : '';
+    const dashedActive = cat.style === 'dashed' ? ' active' : '';
+    const canDel = stagedCats.length > 1 ? '' : ' disabled';
+    return `<div class="cat-row" data-idx="${i}">
+      <input type="color" class="cat-color-inp" value="${cat.color}" data-idx="${i}" title="Pick color">
+      <input type="text"  class="cat-name-inp"  value="${cat.label}" data-idx="${i}" maxlength="40" placeholder="Category name">
+      <div class="cat-style-grp">
+        <button class="cat-style-btn${solidActive}"  data-idx="${i}" data-style="solid">Solid</button>
+        <button class="cat-style-btn${dashedActive}" data-idx="${i}" data-style="dashed">Dashed</button>
+      </div>
+      ${warnHtml}
+      <button class="cat-del-btn" data-idx="${i}"${canDel} title="Delete category">🗑</button>
+    </div>`;
+  }).join('');
+
+  // Bind events on the freshly-rendered rows
+  list.querySelectorAll('.cat-color-inp').forEach(inp => {
+    inp.addEventListener('input', e => { stagedCats[+e.target.dataset.idx].color = e.target.value; });
+  });
+  list.querySelectorAll('.cat-name-inp').forEach(inp => {
+    inp.addEventListener('input', e => { stagedCats[+e.target.dataset.idx].label = e.target.value; });
+  });
+  list.querySelectorAll('.cat-style-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const idx = +e.target.dataset.idx;
+      stagedCats[idx].style = e.target.dataset.style;
+      renderCatManager();
+    });
+  });
+  list.querySelectorAll('.cat-del-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const idx = +e.target.dataset.idx;
+      if (stagedCats.length <= 1) return;
+      stagedCats.splice(idx, 1);
+      renderCatManager();
+    });
+  });
+}
+
+function addStagedCat() {
+  const rand = Math.random().toString(36).slice(2, 6);
+  stagedCats.push({ id: `cat-${rand}`, label: 'New Category', color: '#6366f1', style: 'solid' });
+  renderCatManager();
+  // Focus the new name input
+  const inputs = document.querySelectorAll('#cat-list .cat-name-inp');
+  if (inputs.length) inputs[inputs.length - 1].focus();
+}
+
+function commitCatChanges() {
+  // Validate: ensure all labels are non-empty
+  for (const c of stagedCats) {
+    if (!c.label.trim()) { alert('All categories must have a name.'); return; }
+  }
+  categories = stagedCats.map(c => ({ ...c, label: c.label.trim() }));
+  persistCategories();
+  renderLegend();
+  renderCatSelect();
+  closeCatManager();
+  renderCalendar();
+}
+
 // ── Setup / Onboarding ────────────────────────────────────────
 let setupYear    = 2026;
 let setupCountry = 'CA';
@@ -1658,6 +2084,22 @@ document.getElementById('modal-bg').addEventListener('click', e => {
   if (e.target === document.getElementById('modal-bg')) closeModal();
 });
 
+document.getElementById('hol-mgr-btn').addEventListener('click', openHolManager);
+document.getElementById('hol-mgr-close').addEventListener('click', closeHolManager);
+document.getElementById('hol-add-btn').addEventListener('click', addHoliday);
+document.getElementById('hol-add-name').addEventListener('keydown', e => { if (e.key === 'Enter') addHoliday(); });
+document.getElementById('hol-manager-bg').addEventListener('click', e => {
+  if (e.target === document.getElementById('hol-manager-bg')) closeHolManager();
+});
+
+document.getElementById('cat-mgr-btn').addEventListener('click', openCatManager);
+document.getElementById('cat-mgr-close').addEventListener('click', closeCatManager);
+document.getElementById('cat-add-btn').addEventListener('click', addStagedCat);
+document.getElementById('cat-save-btn').addEventListener('click', commitCatChanges);
+document.getElementById('cat-manager-bg').addEventListener('click', e => {
+  if (e.target === document.getElementById('cat-manager-bg')) closeCatManager();
+});
+
 document.addEventListener('keydown', e => {
   const modalOpen = !document.getElementById('modal-bg').classList.contains('hidden');
 
@@ -1699,8 +2141,11 @@ window.addEventListener('wheel', e => {
 }, { passive: false });
 
 // ── Init ─────────────────────────────────────────────────────
+loadCategories();
 loadAll();
 setZoom(1);
+renderLegend();
+renderCatSelect();
 
 // Restore last-used preferences so setup screen is pre-populated
 const _savedY = localStorage.getItem('bac-setup-year');
