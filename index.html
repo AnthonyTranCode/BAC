@@ -79,24 +79,6 @@
       flex-wrap: wrap;
     }
 
-    /* Settings badge in header */
-    .settings-badge {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 5px 12px;
-      border: 1.5px solid #cbd5e1;
-      border-radius: 20px;
-      background: #f8fafc;
-      color: #475569;
-      font: 700 12px/1 var(--font);
-      cursor: pointer;
-      transition: all .13s;
-      flex-shrink: 0;
-    }
-    .settings-badge:hover { border-color: #94a3b8; background: #f1f5f9; color: #1e293b; }
-    .settings-badge svg { flex-shrink: 0; opacity: .6; }
-
     .sep { width: 1px; height: 20px; background: #cbd5e1; flex-shrink: 0; }
 
     .export-btn {
@@ -560,128 +542,34 @@
     }
 
     /* ─── Setup / Onboarding Overlay ────────────────── */
-    .setup-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 900;
-      background: #e8ecf1;
+    /* ─── Year Navigator ────────────────────────── */
+    .year-nav {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .year-nav-btn {
       display: flex;
       align-items: center;
       justify-content: center;
+      width: 28px;
+      height: 28px;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 50%;
+      background: #f8fafc;
+      color: #475569;
+      cursor: pointer;
+      transition: all .13s;
+      flex-shrink: 0;
     }
-    .setup-overlay.hidden { display: none !important; }
-
-    .setup-card {
-      background: #fff;
-      border-radius: 16px;
-      padding: 40px 48px 36px;
-      width: 520px;
-      max-width: calc(100vw - 32px);
-      box-shadow: 0 8px 48px rgba(0,0,0,.13);
-      border: 1.5px solid #e2e8f0;
-    }
-
-    .setup-app-name {
-      font: 700 10px/1 var(--font);
-      text-transform: uppercase;
-      letter-spacing: 2.5px;
-      color: #94a3b8;
-      margin-bottom: 10px;
-    }
-
-    .setup-heading {
-      font: 700 30px/1 var(--font-headline);
+    .year-nav-btn:hover:not(:disabled) { border-color: #94a3b8; background: #f1f5f9; color: #1e293b; }
+    .year-nav-btn:disabled { opacity: .35; cursor: default; }
+    .year-nav-lbl {
+      font: 700 13px/1 var(--font);
       color: #1e293b;
-      text-transform: uppercase;
-      letter-spacing: -1px;
-      margin-bottom: 6px;
-    }
-
-    .setup-sub {
-      font: 400 14px/1.6 var(--font);
-      color: #64748b;
-      margin-bottom: 32px;
-    }
-
-    .setup-section-lbl {
-      font: 700 10px/1 var(--font);
-      text-transform: uppercase;
-      letter-spacing: .9px;
-      color: #94a3b8;
-      margin-bottom: 10px;
-    }
-
-    .setup-year-group {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 24px;
-    }
-
-    .setup-year-card {
-      flex: 1;
-      padding: 20px 10px;
-      border: 2px solid #e2e8f0;
-      border-radius: 10px;
-      background: #f8fafc;
-      font: 700 26px/1 var(--font-headline);
-      color: #94a3b8;
-      cursor: pointer;
+      min-width: 36px;
       text-align: center;
-      transition: all .15s;
     }
-    .setup-year-card:hover:not(.selected) { border-color: #94a3b8; color: #475569; background: #f1f5f9; }
-    .setup-year-card.selected { border-color: #1e3a5f; background: #1e3a5f; color: #fff; }
-
-    .setup-country-group {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 32px;
-    }
-
-    .setup-country-btn {
-      flex: 1;
-      padding: 14px 16px;
-      border: 2px solid #e2e8f0;
-      border-radius: 10px;
-      background: #f8fafc;
-      font: 700 13px/1 var(--font);
-      color: #64748b;
-      cursor: pointer;
-      text-align: center;
-      transition: all .15s;
-    }
-    .setup-country-btn:hover:not(.selected) { border-color: #94a3b8; color: #475569; background: #f1f5f9; }
-    .setup-country-btn.selected { border-color: var(--c-holidays); background: #e0f2fe; color: var(--c-holidays); font-weight: 800; }
-
-    .setup-start-btn {
-      width: 100%;
-      padding: 15px;
-      background: #1e3a5f;
-      color: #fff;
-      border: none;
-      border-radius: 10px;
-      font: 700 13px/1 var(--font);
-      text-transform: uppercase;
-      letter-spacing: .8px;
-      cursor: pointer;
-      transition: background .13s;
-    }
-    .setup-start-btn:hover { background: #0f2040; }
-
-    .setup-cancel-row {
-      text-align: center;
-      margin-top: 12px;
-    }
-    .setup-cancel-link {
-      background: none;
-      border: none;
-      color: #94a3b8;
-      font: 400 13px/1 var(--font);
-      cursor: pointer;
-      text-decoration: underline;
-      text-underline-offset: 2px;
-    }
-    .setup-cancel-link:hover { color: #64748b; }
 
     /* ─── Category Manager ──────────────────────── */
     .cat-mgr-btn {
@@ -815,10 +703,15 @@
       <span class="title-year" id="title-year">2026</span> Year Planner
     </div>
     <div class="header-controls">
-      <button class="settings-badge" id="settings-btn" title="Change year or location">
-        <span id="settings-label">2026 · 🇨🇦 Canada</span>
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-      </button>
+      <div class="year-nav">
+        <button class="year-nav-btn" id="year-prev-btn" title="Previous year">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <span class="year-nav-lbl" id="year-nav-lbl">2026</span>
+        <button class="year-nav-btn" id="year-next-btn" title="Next year">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
       <div class="sep"></div>
       <button class="cat-mgr-btn" id="cat-mgr-btn" title="Manage categories">✏️ Categories</button>
       <div class="sep"></div>
@@ -937,32 +830,7 @@
   </div>
 </div>
 
-<!-- Setup / Onboarding Overlay -->
-<div class="setup-overlay" id="setup-overlay">
-  <div class="setup-card">
-    <div class="setup-app-name">Year Planner</div>
-    <div class="setup-heading">Get Started</div>
-    <div class="setup-sub">Choose your planning year and location to continue.</div>
 
-    <div class="setup-section-lbl">Year</div>
-    <div class="setup-year-group">
-      <button class="setup-year-card selected" data-setup-y="2026">2026</button>
-      <button class="setup-year-card" data-setup-y="2027">2027</button>
-      <button class="setup-year-card" data-setup-y="2028">2028</button>
-    </div>
-
-    <div class="setup-section-lbl">Location</div>
-    <div class="setup-country-group">
-      <button class="setup-country-btn selected" data-setup-c="CA">🇨🇦 Canada</button>
-      <button class="setup-country-btn" data-setup-c="US">🇺🇸 United States</button>
-    </div>
-
-    <button class="setup-start-btn" id="setup-start-btn">Start Planning →</button>
-    <div class="setup-cancel-row hidden" id="setup-cancel-row">
-      <button class="setup-cancel-link" id="setup-cancel-btn">Cancel</button>
-    </div>
-  </div>
-</div>
 
 <script>
 // ── Constants ────────────────────────────────────────────────
@@ -1811,8 +1679,7 @@ function persistHolidayList(year, country, list) {
 }
 
 function openHolManager() {
-  document.getElementById('hol-mgr-label').textContent =
-    `${curYear} · ${curCountry === 'CA' ? '🇨🇦 Canada' : '🇺🇸 United States'}`;
+  document.getElementById('hol-mgr-label').textContent = `${curYear} · 🇨🇦 Canada`;
   renderHolList();
   document.getElementById('hol-manager-bg').classList.remove('hidden');
 }
@@ -2000,79 +1867,30 @@ function commitCatChanges() {
   renderCalendar();
 }
 
-// ── Setup / Onboarding ────────────────────────────────────────
-let setupYear    = 2026;
-let setupCountry = 'CA';
-let hasSetup     = false;   // true once user has completed setup at least once
+// ── Year Navigation ───────────────────────────────────────────
+const YEAR_MIN = 2025;
+const YEAR_MAX = 2030;
 
-function updateSettingsLabel() {
-  const flag = curCountry === 'CA' ? '🇨🇦' : '🇺🇸';
-  const name = curCountry === 'CA' ? 'Canada' : 'United States';
-  document.getElementById('settings-label').textContent = `${curYear} · ${flag} ${name}`;
+function updateYearNav() {
+  document.getElementById('title-year').textContent    = curYear;
+  document.getElementById('year-nav-lbl').textContent  = curYear;
+  document.getElementById('year-prev-btn').disabled    = curYear <= YEAR_MIN;
+  document.getElementById('year-next-btn').disabled    = curYear >= YEAR_MAX;
 }
 
-function openSetup() {
-  // Sync temporary setup selections to current app state
-  setupYear    = curYear;
-  setupCountry = curCountry;
-  document.querySelectorAll('.setup-year-card').forEach(b =>
-    b.classList.toggle('selected', +b.dataset.setupY === setupYear));
-  document.querySelectorAll('.setup-country-btn').forEach(b =>
-    b.classList.toggle('selected', b.dataset.setupC === setupCountry));
-  // Only show cancel button if the user has already been to the calendar
-  document.getElementById('setup-cancel-row').classList.toggle('hidden', !hasSetup);
-  document.getElementById('setup-overlay').classList.remove('hidden');
-}
-
-function applySetup() {
-  hasSetup = true;
-  document.getElementById('setup-overlay').classList.add('hidden');
-  // Persist preferences
-  localStorage.setItem('bac-setup-year',    String(setupYear));
-  localStorage.setItem('bac-setup-country', setupCountry);
-  // Apply and render
-  curYear    = setupYear;
-  curCountry = setupCountry;
-  document.getElementById('title-year').textContent = curYear;
-  updateSettingsLabel();
-  renderCalendar();
-}
-
-// Setup year card clicks
-document.querySelectorAll('.setup-year-card').forEach(b =>
-  b.addEventListener('click', () => {
-    setupYear = +b.dataset.setupY;
-    document.querySelectorAll('.setup-year-card').forEach(x =>
-      x.classList.toggle('selected', x === b));
-  }));
-
-// Setup country button clicks
-document.querySelectorAll('.setup-country-btn').forEach(b =>
-  b.addEventListener('click', () => {
-    setupCountry = b.dataset.setupC;
-    document.querySelectorAll('.setup-country-btn').forEach(x =>
-      x.classList.toggle('selected', x === b));
-  }));
-
-document.getElementById('setup-start-btn').addEventListener('click', applySetup);
-document.getElementById('settings-btn').addEventListener('click', openSetup);
-document.getElementById('setup-cancel-btn').addEventListener('click', () => {
-  document.getElementById('setup-overlay').classList.add('hidden');
-});
-
-// ── Controls ─────────────────────────────────────────────────
 function setYear(y) {
   curYear = y;
-  document.getElementById('title-year').textContent = y;
-  updateSettingsLabel();
+  localStorage.setItem('bac-setup-year', String(curYear));
+  updateYearNav();
   renderCalendar();
 }
 
-function setCountry(c) {
-  curCountry = c;
-  updateSettingsLabel();
-  renderCalendar();
-}
+document.getElementById('year-prev-btn').addEventListener('click', () => {
+  if (curYear > YEAR_MIN) setYear(curYear - 1);
+});
+document.getElementById('year-next-btn').addEventListener('click', () => {
+  if (curYear < YEAR_MAX) setYear(curYear + 1);
+});
 
 document.getElementById('export-btn').addEventListener('click', exportPNG);
 document.getElementById('btn-save').addEventListener('click', saveEvent);
@@ -2147,14 +1965,12 @@ setZoom(1);
 renderLegend();
 renderCatSelect();
 
-// Restore last-used preferences so setup screen is pre-populated
+// Restore last-used year
 const _savedY = localStorage.getItem('bac-setup-year');
-const _savedC = localStorage.getItem('bac-setup-country');
-if (_savedY && [2026, 2027, 2028].includes(+_savedY)) curYear    = +_savedY;
-if (_savedC && ['CA', 'US'].includes(_savedC))        curCountry = _savedC;
+if (_savedY && +_savedY >= YEAR_MIN && +_savedY <= YEAR_MAX) curYear = +_savedY;
 
-updateSettingsLabel();
-openSetup();   // Show setup overlay on every page load
+updateYearNav();
+renderCalendar();
 </script>
 </body>
 </html>
