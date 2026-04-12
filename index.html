@@ -591,15 +591,15 @@
     .cat-row {
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 8px 0;
+      gap: 10px;
+      padding: 10px 0;
       border-bottom: 1px solid #f1f5f9;
     }
     .cat-row:last-child { border-bottom: none; }
 
     .cat-color-inp {
-      width: 32px; height: 32px;
-      border-radius: 6px;
+      width: 36px; height: 36px;
+      border-radius: 8px;
       border: 2px solid #e2e8f0;
       cursor: pointer;
       padding: 2px;
@@ -612,7 +612,7 @@
       padding: 7px 10px;
       border: 1.5px solid #d1d9e4;
       border-radius: 6px;
-      font: 400 13px/1 var(--font);
+      font: 500 13px/1 var(--font);
       color: #1e293b;
       outline: none;
       min-width: 0;
@@ -643,24 +643,20 @@
     .cat-del-btn {
       background: none;
       border: none;
-      font-size: 15px;
       cursor: pointer;
       color: #cbd5e1;
-      padding: 4px 6px;
+      padding: 5px 6px;
       border-radius: 4px;
       transition: all .12s;
       flex-shrink: 0;
       line-height: 1;
+      display: flex;
+      align-items: center;
     }
     .cat-del-btn:not(:disabled):hover { color: #dc2626; background: #fee2e2; }
     .cat-del-btn:disabled { opacity: .3; cursor: default; }
 
-    .cat-usage-warn {
-      font: 400 10px/1 var(--font);
-      color: #f59e0b;
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
+    .modal-sub { font: 400 12px/1 var(--font); color: #94a3b8; margin-top: 3px; }
 
     /* ─── Holiday Manager ────────────────────────── */
     .hol-row {
@@ -771,12 +767,15 @@
 <div class="modal-bg hidden" id="cat-manager-bg">
   <div class="modal" style="width:520px;max-width:96vw">
     <div class="modal-head">
-      <div class="modal-ttl">Manage Categories</div>
+      <div>
+        <div class="modal-ttl">Manage Categories</div>
+        <div class="modal-sub">Rename, recolor, or remove categories</div>
+      </div>
       <button class="modal-close" id="cat-mgr-close">×</button>
     </div>
     <div id="cat-list"></div>
     <div class="modal-actions" style="margin-top:16px">
-      <button class="btn-cancel" id="cat-add-btn">+ Add Category</button>
+      <button class="btn-cancel" id="cat-add-btn">+ Add</button>
       <button class="btn-save"   id="cat-save-btn">Save Changes</button>
     </div>
   </div>
@@ -1799,13 +1798,12 @@ function closeCatManager() {
   document.getElementById('cat-manager-bg').classList.add('hidden');
 }
 
+const TRASH_ICON = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`;
+
 function renderCatManager() {
   const list = document.getElementById('cat-list');
   if (!list) return;
-  const allYears = [2026, 2027, 2028];
   list.innerHTML = stagedCats.map((cat, i) => {
-    const usage = allYears.flatMap(y => allEvents[y] || []).filter(e => e.category === cat.id).length;
-    const warnHtml = usage > 0 ? `<span class="cat-usage-warn">${usage} event${usage > 1 ? 's' : ''} use this</span>` : '';
     const solidActive  = cat.style === 'solid'  ? ' active' : '';
     const dashedActive = cat.style === 'dashed' ? ' active' : '';
     const canDel = stagedCats.length > 1 ? '' : ' disabled';
@@ -1816,8 +1814,7 @@ function renderCatManager() {
         <button class="cat-style-btn${solidActive}"  data-idx="${i}" data-style="solid">Solid</button>
         <button class="cat-style-btn${dashedActive}" data-idx="${i}" data-style="dashed">Dashed</button>
       </div>
-      ${warnHtml}
-      <button class="cat-del-btn" data-idx="${i}"${canDel} title="Delete category">🗑</button>
+      <button class="cat-del-btn" data-idx="${i}"${canDel} title="Delete category">${TRASH_ICON}</button>
     </div>`;
   }).join('');
 
