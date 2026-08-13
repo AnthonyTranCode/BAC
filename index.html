@@ -4,53 +4,134 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Year Planner</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,700&display=swap" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    /* ── Flodesk Sans (Grain) — weights 400 / 500 only ── */
+    @font-face {
+      font-family: "Flodesk Sans";
+      src: url("./fonts/FlodeskSans_Regular.woff2") format("woff2");
+      font-weight: 400; font-style: normal; font-display: swap;
+    }
+    @font-face {
+      font-family: "Flodesk Sans";
+      src: url("./fonts/FlodeskSans_Medium.woff2") format("woff2");
+      font-weight: 500; font-style: normal; font-display: swap;
+    }
+
     :root {
+      /* ── Calendar geometry ── */
       --cell-w:      57px;
       --label-w:     76px;
       --cell-h:      60px;
       --track-h:     28px;
       --bar-h:       26px;
-      --font:        'Trebuchet MS', Inter, system-ui, sans-serif;
-      --font-headline: Georgia, 'Times New Roman', serif;
-      --c-adventures: #f97316;
-      --c-occasions:  #eab308;
-      --c-holidays:   #0891b2;
-      --c-network:    #16a34a;
-      --c-misogi-fg:  #dc2626;
-      --c-bucket-fg:  #1e293b;
-      --bg-cell:      #ffffff;
-      --bg-weekend:   #dde5f0;
-      --bg-inactive:  #c9d0db;
-      --text-inactive:#8fa0b4;
-      --border:       #d1d9e4;
-      --border-dark:  #1e293b;
+
+      /* ── Grain tokens — light ── */
+      --background: #ffffff;
+      --foreground: #10100f;
+      --card: #fafaf7;
+      --card-foreground: #10100f;
+      --popover: #ffffff;
+      --popover-foreground: #10100f;
+      --primary: #10100f;
+      --primary-foreground: #fafaf7;
+      --secondary: #f4f4f0;
+      --secondary-foreground: #10100f;
+      --muted: #e6e2db;
+      --muted-foreground: #88887c;
+      --accent: #f4f4f0;
+      --accent-foreground: #10100f;
+      --destructive: #d33003;
+      --warning: #f4da48;
+      --success: #417713;
+      --info: #0b59ea;
+      --border: #e1e1df;
+      --input: #dadad8;
+      --ring: #10100f;
+
+      /* ── Grain type ── */
+      --font: "Flodesk Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --font-headline: var(--font);
+      --weight-normal: 400;
+      --weight-medium: 500;
+
+      /* ── Grain radii ── */
+      --radius-md: 6px;
+      --radius-lg: 8px;
+      --radius-2xl: 16px;
+      --radius-full: 9999px;
+
+      /* ── Grain shadows ── */
+      --shadow-sm: 0 1px 2px 0 rgb(16 16 15 / 0.05);
+      --shadow-md: 0 4px 6px -1px rgb(16 16 15 / 0.08), 0 2px 4px -2px rgb(16 16 15 / 0.05);
+      --shadow-lg: 0 10px 15px -3px rgb(16 16 15 / 0.08), 0 4px 6px -4px rgb(16 16 15 / 0.05);
+      --shadow-xl: 0 20px 25px -5px rgb(16 16 15 / 0.1), 0 8px 10px -6px rgb(16 16 15 / 0.06);
+
+      /* ── Grain motion ── */
+      --duration-75: 75ms;
+      --duration-150: 150ms;
+      --duration-200: 200ms;
+      --duration-300: 300ms;
+      --duration-500: 500ms;
+      --duration: 200ms;
+      --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+      /* ── Calendar surfaces (mapped to Grain neutrals) ── */
+      --bg-page:      var(--secondary);
+      --bg-cell:      var(--card);
+      --bg-weekend:   var(--muted);
+      --bg-inactive:  var(--muted);
+      --text-inactive:var(--muted-foreground);
+    }
+
+    /* ── Grain tokens — dark ── */
+    [data-theme="dark"] {
+      --background: #000000;
+      --foreground: #fafaf7;
+      --card: #10100f;
+      --card-foreground: #fafaf7;
+      --popover: #10100f;
+      --popover-foreground: #fafaf7;
+      --primary: #fafaf7;
+      --primary-foreground: #10100f;
+      --secondary: #272725;
+      --secondary-foreground: #fafaf7;
+      --muted: #423f38;
+      --muted-foreground: #88887c;
+      --accent: #272725;
+      --accent-foreground: #fafaf7;
+      --destructive: #fe6943;
+      --warning: #e1c914;
+      --success: #79bd3d;
+      --info: #397ef3;
+      --border: #3c3c2f;
+      --input: #50503f;
+      --ring: #fafaf7;
     }
 
     body {
       font-family: var(--font);
-      background: #e8ecf1;
-      color: #1e293b;
+      background: var(--bg-page);
+      color: var(--foreground);
       height: 100vh;
       overflow: hidden;
       display: flex;
       flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
 
     /* ─── Page Header (title + legend + controls) ─── */
     .page-header {
-      background: #fff;
+      background: var(--background);
       padding: 20px 28px 18px;
       display: flex;
       align-items: flex-start;
       justify-content: space-between;
       gap: 24px;
-      border-bottom: 3px solid var(--border-dark);
+      border-bottom: 1px solid var(--border);
     }
 
     .header-left {
@@ -61,15 +142,14 @@
     }
 
     .page-title {
-      font: 700 48px/0.9 var(--font-headline);
-      color: #1e293b;
-      text-transform: uppercase;
-      letter-spacing: -1.5px;
+      font: var(--weight-medium) 36px/1.1 var(--font-headline);
+      color: var(--foreground);
+      letter-spacing: -0.02em;
       white-space: nowrap;
     }
 
     .page-title .title-year {
-      color: #1e3a5f;
+      color: var(--foreground);
     }
 
     .header-controls {
@@ -79,25 +159,25 @@
       flex-wrap: wrap;
     }
 
-    .sep { width: 1px; height: 20px; background: #cbd5e1; flex-shrink: 0; }
+    .sep { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
 
     .export-btn {
-      padding: 5px 12px;
-      background: #1e3a5f;
-      color: #fff;
+      height: 32px;
+      padding: 0 14px;
+      background: var(--primary);
+      color: var(--primary-foreground);
       border: none;
-      border-radius: 5px;
-      font: 700 12px/1 var(--font);
+      border-radius: var(--radius-md);
+      font: var(--weight-medium) 14px/1 var(--font);
       cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 5px;
-      text-transform: uppercase;
-      letter-spacing: .4px;
-      transition: background .13s;
+      gap: 6px;
+      box-shadow: var(--shadow-sm);
+      transition: opacity var(--duration, 200ms) var(--ease-standard);
     }
-    .export-btn:hover { background: #0f2040; }
-    .export-btn:disabled { opacity: .55; cursor: default; }
+    .export-btn:hover { opacity: .9; }
+    .export-btn:disabled { opacity: .5; cursor: default; }
 
     /* ─── Legend ─────────────────────────────────────── */
     .legend {
@@ -115,31 +195,22 @@
     }
 
     .leg-swatch {
-      width: 30px;
-      height: 30px;
-      border-radius: 5px;
+      width: 28px;
+      height: 28px;
+      border-radius: var(--radius-md);
       flex-shrink: 0;
     }
 
     .leg-label {
-      font: 700 13px/1 var(--font);
-      color: #1e293b;
-      text-transform: uppercase;
-      letter-spacing: 0.2px;
+      font: var(--weight-normal) 14px/1 var(--font);
+      color: var(--foreground);
     }
-
-    .sw-adventures { background: var(--c-adventures); }
-    .sw-occasions  { background: var(--c-occasions); }
-    .sw-holidays   { background: var(--c-holidays); }
-    .sw-network    { background: var(--c-network); }
-    .sw-misogi     { background: transparent; border: 3px dashed var(--c-misogi-fg); }
-    .sw-bucketlist { background: transparent; border: 3px dashed var(--c-bucket-fg); }
 
     /* ─── Zoom outer scroll container ───────────────── */
     .page-outer {
       flex: 1;
       overflow: auto;
-      background: #e8ecf1;
+      background: var(--bg-page);
     }
 
     /* Scaler — receives CSS zoom property */
@@ -168,13 +239,12 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font: 700 13px/1 var(--font);
-      color: #1e3a5f;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      background: #fff;
-      border: 1.5px solid var(--border);
-      border-radius: 5px 0 0 5px;
+      font: var(--weight-medium) 14px/1 var(--font);
+      color: var(--foreground);
+      letter-spacing: -0.01em;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md) 0 0 var(--radius-md);
     }
 
     .days-area {
@@ -187,7 +257,8 @@
     .wknd-col {
       position: absolute;
       top: 0; bottom: 0;
-      background: rgba(186, 202, 220, 0.42);
+      background: var(--bg-weekend);
+      opacity: .5;
       z-index: -1;
       pointer-events: none;
     }
@@ -216,11 +287,11 @@
       cursor: pointer;
       display: flex;
       flex-direction: column;
-      transition: background .1s;
+      transition: background var(--duration, 200ms) var(--ease-standard);
     }
 
-    .day-cell:last-child { border-radius: 0 5px 5px 0; }
-    .day-cell:hover:not(.inactive) { background: #f0f7ff !important; }
+    .day-cell:last-child { border-radius: 0 var(--radius-md) var(--radius-md) 0; }
+    .day-cell:hover:not(.inactive) { background: var(--accent) !important; }
     .day-cell.weekend  { background: transparent; }
     .day-cell.inactive { background: var(--bg-inactive) !important; cursor: default; }
 
@@ -235,14 +306,13 @@
     }
 
     .cell-hdr-txt {
-      font: 700 7px/1 var(--font);
-      color: #64748b;
-      text-transform: uppercase;
-      letter-spacing: .2px;
+      font: var(--weight-medium) 8px/1 var(--font);
+      color: var(--muted-foreground);
+      letter-spacing: 0;
       white-space: nowrap;
     }
 
-    .day-cell.weekend  .cell-hdr-txt { color: #4a6080; }
+    .day-cell.weekend  .cell-hdr-txt { color: var(--muted-foreground); }
     .day-cell.inactive .cell-hdr-txt { color: var(--text-inactive); }
 
     .cell-evs {
@@ -255,14 +325,13 @@
 
     /* ─── Single-day chips ──────────────────────────── */
     .chip {
-      font: 700 8px/1 var(--font);
-      padding: 2px 3px;
-      border-radius: 3px;
+      font: var(--weight-medium) 8px/1 var(--font);
+      padding: 2px 4px;
+      border-radius: var(--radius-md);
       overflow: hidden;
       cursor: grab;
       pointer-events: auto;
-      text-transform: uppercase;
-      letter-spacing: .2px;
+      letter-spacing: 0;
       min-height: 13px;
       flex: 1;
       display: flex;
@@ -281,15 +350,15 @@
       right: 0; top: 0; bottom: 0;
       width: 6px;
       cursor: ew-resize;
-      background: rgba(0,0,0,0.22);
+      background: rgb(16 16 15 / 0.22);
       opacity: 0;
-      border-radius: 0 3px 3px 0;
-      transition: opacity .12s;
+      border-radius: 0 var(--radius-md) var(--radius-md) 0;
+      transition: opacity var(--duration-150, 150ms) var(--ease-standard);
     }
     .chip:hover .chip-resize-handle { opacity: 1; }
 
     /* Drop-target highlight when dragging a chip */
-    .day-cell.drop-target { background: #dbeafe !important; outline: 2px solid #3b82f6; outline-offset: -2px; }
+    .day-cell.drop-target { background: var(--accent) !important; outline: 2px solid var(--ring); outline-offset: -2px; }
 
     /* Ghost chip (floating clone during move drag) */
     #chip-ghost {
@@ -297,11 +366,10 @@
       pointer-events: none;
       z-index: 9999;
       opacity: 0.8;
-      border-radius: 3px;
-      font: 700 8px/1.2 var(--font);
-      padding: 2px 3px;
-      text-transform: uppercase;
-      letter-spacing: .2px;
+      border-radius: var(--radius-md);
+      font: var(--weight-medium) 8px/1.2 var(--font);
+      padding: 2px 4px;
+      letter-spacing: 0;
       text-align: center;
       white-space: normal;
     }
@@ -310,12 +378,11 @@
     #chip-ghost-bar {
       position: fixed;
       height: 20px;
-      border-radius: 3px;
-      font: 700 8px/20px var(--font);
-      text-transform: uppercase;
-      letter-spacing: .2px;
+      border-radius: var(--radius-md);
+      font: var(--weight-medium) 8px/20px var(--font);
+      letter-spacing: 0;
       text-align: center;
-      color: #fff;
+      color: var(--primary-foreground);
       opacity: 0.75;
       pointer-events: none;
       z-index: 9999;
@@ -323,20 +390,15 @@
       overflow: hidden;
     }
 
-    .chip.cat-adventures { background: var(--c-adventures); color: #fff; }
-    .chip.cat-occasions  { background: var(--c-occasions);  color: #fff; }
-    .chip.cat-holidays   { background: var(--c-holidays);   color: #fff; }
-    .chip.cat-network    { background: var(--c-network);    color: #fff; }
-    .chip.cat-misogi     { background: transparent; border: 1.5px dashed var(--c-misogi-fg); color: var(--c-misogi-fg); }
-    .chip.cat-bucketlist { background: transparent; border: 1.5px dashed var(--c-bucket-fg); color: var(--c-bucket-fg); }
+    /* Category-specific chip/bar colors are applied inline by applyCatStyle() in JS. */
 
     /* ─── Multi-day event bars ──────────────────────── */
     .ev-bar {
       position: absolute;
       height: var(--bar-h);
-      border-radius: 4px;
-      font: 700 11px/var(--bar-h) var(--font);
-      color: #fff;
+      border-radius: var(--radius-md);
+      font: var(--weight-medium) 11px/var(--bar-h) var(--font);
+      color: var(--primary-foreground);
       padding: 0 14px;
       white-space: nowrap;
       overflow: hidden;
@@ -344,14 +406,13 @@
       cursor: grab;
       pointer-events: auto;
       z-index: 10;
-      text-transform: uppercase;
-      letter-spacing: .4px;
+      letter-spacing: 0;
       text-align: center;
       user-select: none;
     }
 
-    .ev-bar:hover { filter: brightness(1.08); }
-    .ev-bar.dragging { opacity: .6; cursor: grabbing; box-shadow: 0 4px 18px rgba(0,0,0,.28); }
+    .ev-bar:hover { opacity: .9; }
+    .ev-bar.dragging { opacity: .6; cursor: grabbing; box-shadow: var(--shadow-lg); }
 
     /* Resize drag handles (left / right edges of bar) */
     .ev-resize-handle {
@@ -359,31 +420,14 @@
       top: 0; bottom: 0;
       width: 8px;
       cursor: ew-resize;
-      background: rgba(0,0,0,.22);
+      background: rgb(16 16 15 / 0.22);
       opacity: 0;
-      transition: opacity .12s;
+      transition: opacity var(--duration-150, 150ms) var(--ease-standard);
       z-index: 1;
     }
     .ev-bar:hover .ev-resize-handle { opacity: 1; }
-    .ev-resize-left  { left: 0;  border-radius: 4px 0 0 4px; }
-    .ev-resize-right { right: 0; border-radius: 0 4px 4px 0; }
-
-    .ev-bar.cat-adventures { background: var(--c-adventures); }
-    .ev-bar.cat-occasions  { background: var(--c-occasions); color: #1e293b; }
-    .ev-bar.cat-holidays   { background: var(--c-holidays); }
-    .ev-bar.cat-network    { background: var(--c-network); }
-    .ev-bar.cat-misogi     {
-      background: transparent;
-      border: 2.5px dashed var(--c-misogi-fg);
-      color: var(--c-misogi-fg);
-      line-height: calc(var(--bar-h) - 5px);
-    }
-    .ev-bar.cat-bucketlist {
-      background: transparent;
-      border: 2.5px dashed var(--c-bucket-fg);
-      color: var(--c-bucket-fg);
-      line-height: calc(var(--bar-h) - 5px);
-    }
+    .ev-resize-left  { left: 0;  border-radius: var(--radius-md) 0 0 var(--radius-md); }
+    .ev-resize-right { right: 0; border-radius: 0 var(--radius-md) var(--radius-md) 0; }
 
     /* ─── Zoom bar ──────────────────────────────────── */
     .zoom-bar {
@@ -392,41 +436,41 @@
       left: 50%;
       transform: translateX(-50%);
       z-index: 300;
-      background: #1e293b;
-      border-radius: 40px;
+      background: var(--primary);
+      border-radius: var(--radius-full);
       padding: 5px 7px;
       display: flex;
       align-items: center;
       gap: 1px;
-      box-shadow: 0 4px 24px rgba(0,0,0,.4), 0 1px 4px rgba(0,0,0,.2);
+      box-shadow: var(--shadow-xl);
       user-select: none;
     }
 
     .zoom-action {
       width: 30px; height: 30px;
       border: none; background: transparent;
-      color: #fff; font-size: 22px; font-weight: 300; line-height: 1;
-      border-radius: 50%; cursor: pointer;
+      color: var(--primary-foreground); font-size: 22px; font-weight: var(--weight-normal); line-height: 1;
+      border-radius: var(--radius-full); cursor: pointer;
       display: flex; align-items: center; justify-content: center;
-      transition: background .12s;
+      transition: background var(--duration-150, 150ms) var(--ease-standard);
       flex-shrink: 0;
     }
-    .zoom-action:hover { background: rgba(255,255,255,.18); }
-    .zoom-action:active { background: rgba(255,255,255,.28); }
+    .zoom-action:hover { background: rgb(250 250 247 / 0.18); }
+    .zoom-action:active { background: rgb(250 250 247 / 0.28); }
 
     .zoom-pct-btn {
       min-width: 58px; height: 30px;
       border: none; background: transparent;
-      color: #fff; font: 700 13px/1 var(--font);
-      border-radius: 6px; cursor: pointer;
-      transition: background .12s;
+      color: var(--primary-foreground); font: var(--weight-medium) 14px/1 var(--font);
+      border-radius: var(--radius-md); cursor: pointer;
+      transition: background var(--duration-150, 150ms) var(--ease-standard);
       padding: 0 4px;
     }
-    .zoom-pct-btn:hover { background: rgba(255,255,255,.18); }
+    .zoom-pct-btn:hover { background: rgb(250 250 247 / 0.18); }
 
     .zoom-divider {
       width: 1px; height: 18px;
-      background: rgba(255,255,255,.2);
+      background: rgb(250 250 247 / 0.2);
       flex-shrink: 0;
       margin: 0 3px;
     }
@@ -435,22 +479,22 @@
     .modal-bg {
       position: fixed;
       inset: 0;
-      background: rgba(15,23,42,.55);
+      background: rgb(16 16 15 / 0.4);
       z-index: 500;
       display: flex;
       align-items: center;
       justify-content: center;
-      backdrop-filter: blur(3px);
     }
     .modal-bg.hidden { display: none; }
 
     .modal {
-      background: #fff;
-      border-radius: 12px;
-      padding: 22px 24px 20px;
-      width: 440px;
+      background: var(--popover);
+      color: var(--popover-foreground);
+      border-radius: var(--radius-2xl);
+      padding: 24px;
+      width: 448px;
       max-width: calc(100vw - 32px);
-      box-shadow: 0 24px 64px rgba(0,0,0,.22);
+      box-shadow: var(--shadow-lg);
     }
 
     .modal-head {
@@ -461,13 +505,14 @@
     }
 
     .modal-ttl {
-      font: 700 16px/1 var(--font-headline);
-      color: #1e3a5f;
+      font: var(--weight-medium) 20px/1.35 var(--font-headline);
+      color: var(--foreground);
+      letter-spacing: -0.01em;
     }
 
     .modal-date-lbl {
-      font: 400 12px/1 var(--font);
-      color: #64748b;
+      font: var(--weight-normal) 14px/1 var(--font);
+      color: var(--muted-foreground);
       margin-top: 4px;
     }
 
@@ -475,68 +520,79 @@
       background: none;
       border: none;
       cursor: pointer;
-      color: #94a3b8;
-      font-size: 20px;
-      line-height: 1;
-      padding: 0 4px;
+      color: var(--muted-foreground);
+      line-height: 0;
+      padding: 4px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      transition: color var(--duration, 200ms) var(--ease-standard), background var(--duration, 200ms) var(--ease-standard);
     }
-    .modal-close:hover { color: #475569; }
+    .modal-close:hover { color: var(--foreground); background: var(--accent); }
 
     .form-row { display: flex; gap: 10px; margin-bottom: 12px; }
 
     .fld { display: flex; flex-direction: column; gap: 4px; flex: 1; }
 
     .fld label {
-      font: 700 10px/1 var(--font);
-      color: #64748b;
-      text-transform: uppercase;
-      letter-spacing: .6px;
+      font: var(--weight-medium) 14px/1 var(--font);
+      color: var(--foreground);
     }
 
     .fld input, .fld select {
-      padding: 8px 10px;
-      border: 1.5px solid #d1d9e4;
-      border-radius: 6px;
-      font: 400 13px/1 var(--font);
-      color: #1e293b;
+      padding: 9px 12px;
+      background: var(--background);
+      border: 1px solid var(--input);
+      border-radius: var(--radius-md);
+      font: var(--weight-normal) 14px/1.2 var(--font);
+      color: var(--foreground);
       outline: none;
       width: 100%;
+      transition: border-color var(--duration, 200ms) var(--ease-standard), box-shadow var(--duration, 200ms) var(--ease-standard);
     }
-    .fld input:focus, .fld select:focus { border-color: var(--c-holidays); }
+    .fld input::placeholder { color: var(--muted-foreground); }
+    .fld input:focus, .fld select:focus { border-color: var(--ring); box-shadow: 0 0 0 2px var(--popover), 0 0 0 4px var(--ring); }
 
     .emoji-inp { font-size: 20px; text-align: center; width: 64px !important; flex: none; }
 
     .modal-actions { display: flex; gap: 8px; margin-top: 18px; }
 
     .btn-save {
-      flex: 1; padding: 9px;
-      background: #1e3a5f; color: #fff;
-      border: none; border-radius: 7px;
-      font: 700 13px/1 var(--font); cursor: pointer;
+      flex: 1; height: 36px; padding: 0 16px;
+      background: var(--primary); color: var(--primary-foreground);
+      border: none; border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      font: var(--weight-medium) 14px/1 var(--font); cursor: pointer;
+      transition: opacity var(--duration, 200ms) var(--ease-standard);
     }
-    .btn-save:hover { background: #0f2040; }
+    .btn-save:hover { opacity: .9; }
 
     .btn-del {
-      padding: 9px 14px;
-      background: #fee2e2; color: #dc2626;
-      border: none; border-radius: 7px;
-      font: 700 13px/1 var(--font); cursor: pointer;
+      height: 36px; padding: 0 16px;
+      background: var(--destructive); color: #fff;
+      border: none; border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      font: var(--weight-medium) 14px/1 var(--font); cursor: pointer;
+      transition: opacity var(--duration, 200ms) var(--ease-standard);
     }
-    .btn-del:hover { background: #fecaca; }
+    .btn-del:hover { opacity: .9; }
+    .btn-del:active { transform: scale(0.98); }
 
     .btn-cancel {
-      padding: 9px 14px;
-      background: #f1f5f9; color: #475569;
-      border: none; border-radius: 7px;
-      font: 700 13px/1 var(--font); cursor: pointer;
+      height: 36px; padding: 0 16px;
+      background: transparent; color: var(--foreground);
+      border: 1px solid var(--input); border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      font: var(--weight-medium) 14px/1 var(--font); cursor: pointer;
+      transition: background var(--duration, 200ms) var(--ease-standard);
     }
-    .btn-cancel:hover { background: #e2e8f0; }
+    .btn-cancel:hover { background: var(--accent); }
 
     .hidden { display: none !important; }
 
     .err-msg {
-      color: #dc2626;
-      font: 400 12px/1 var(--font);
+      color: var(--destructive);
+      font: var(--weight-normal) 12px/1.3 var(--font);
       margin-top: -8px;
       margin-bottom: 4px;
     }
@@ -554,19 +610,19 @@
       justify-content: center;
       width: 28px;
       height: 28px;
-      border: 1.5px solid #cbd5e1;
-      border-radius: 50%;
-      background: #f8fafc;
-      color: #475569;
+      border: 1px solid var(--input);
+      border-radius: var(--radius-full);
+      background: var(--background);
+      color: var(--foreground);
       cursor: pointer;
-      transition: all .13s;
+      transition: background var(--duration, 200ms) var(--ease-standard);
       flex-shrink: 0;
     }
-    .year-nav-btn:hover:not(:disabled) { border-color: #94a3b8; background: #f1f5f9; color: #1e293b; }
-    .year-nav-btn:disabled { opacity: .35; cursor: default; }
+    .year-nav-btn:hover:not(:disabled) { background: var(--accent); }
+    .year-nav-btn:disabled { opacity: .5; cursor: default; }
     .year-nav-lbl {
-      font: 700 13px/1 var(--font);
-      color: #1e293b;
+      font: var(--weight-medium) 14px/1 var(--font);
+      color: var(--foreground);
       min-width: 36px;
       text-align: center;
     }
@@ -575,32 +631,34 @@
     .cat-mgr-btn {
       display: flex;
       align-items: center;
-      gap: 5px;
-      padding: 5px 12px;
-      border: 1.5px solid #cbd5e1;
-      border-radius: 20px;
-      background: #f8fafc;
-      color: #475569;
-      font: 600 12px/1 var(--font);
+      gap: 6px;
+      height: 32px;
+      padding: 0 14px;
+      border: 1px solid var(--input);
+      border-radius: var(--radius-full);
+      background: var(--background);
+      color: var(--foreground);
+      font: var(--weight-medium) 14px/1 var(--font);
       cursor: pointer;
-      transition: all .13s;
+      transition: background var(--duration, 200ms) var(--ease-standard);
       flex-shrink: 0;
     }
-    .cat-mgr-btn:hover { border-color: #94a3b8; background: #f1f5f9; color: #1e293b; }
+    .cat-mgr-btn:hover { background: var(--accent); }
+    .cat-mgr-btn svg { flex-shrink: 0; }
 
     .cat-row {
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 10px 0;
-      border-bottom: 1px solid #f1f5f9;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
     }
     .cat-row:last-child { border-bottom: none; }
 
     .cat-color-inp {
       width: 36px; height: 36px;
-      border-radius: 8px;
-      border: 2px solid #e2e8f0;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--input);
       cursor: pointer;
       padding: 2px;
       flex-shrink: 0;
@@ -609,85 +667,88 @@
 
     .cat-name-inp {
       flex: 1;
-      padding: 7px 10px;
-      border: 1.5px solid #d1d9e4;
-      border-radius: 6px;
-      font: 500 13px/1 var(--font);
-      color: #1e293b;
+      padding: 8px 12px;
+      border: 1px solid var(--input);
+      border-radius: var(--radius-md);
+      font: var(--weight-normal) 14px/1.2 var(--font);
+      color: var(--foreground);
+      background: var(--background);
       outline: none;
       min-width: 0;
+      transition: border-color var(--duration, 200ms) var(--ease-standard), box-shadow var(--duration, 200ms) var(--ease-standard);
     }
-    .cat-name-inp:focus { border-color: #0891b2; }
+    .cat-name-inp:focus { border-color: var(--ring); box-shadow: 0 0 0 2px var(--popover), 0 0 0 4px var(--ring); }
 
     .cat-style-grp {
       display: flex;
-      border: 1.5px solid #d1d9e4;
-      border-radius: 6px;
+      border: 1px solid var(--input);
+      border-radius: var(--radius-md);
       overflow: hidden;
       flex-shrink: 0;
     }
     .cat-style-btn {
-      padding: 6px 10px;
-      font: 700 10px/1 var(--font);
-      text-transform: uppercase;
-      letter-spacing: .3px;
+      padding: 8px 12px;
+      font: var(--weight-medium) 13px/1 var(--font);
       border: none;
-      background: #f8fafc;
-      color: #64748b;
+      background: var(--background);
+      color: var(--muted-foreground);
       cursor: pointer;
-      transition: all .12s;
+      transition: background var(--duration, 200ms) var(--ease-standard), color var(--duration, 200ms) var(--ease-standard);
     }
-    .cat-style-btn.active { background: #1e3a5f; color: #fff; }
-    .cat-style-btn:not(.active):hover { background: #f1f5f9; color: #475569; }
+    .cat-style-btn.active { background: var(--primary); color: var(--primary-foreground); }
+    .cat-style-btn:not(.active):hover { background: var(--accent); color: var(--foreground); }
 
     .cat-del-btn {
       background: none;
       border: none;
       cursor: pointer;
-      color: #cbd5e1;
-      padding: 5px 6px;
-      border-radius: 4px;
-      transition: all .12s;
+      color: var(--muted-foreground);
+      padding: 6px;
+      border-radius: var(--radius-md);
+      transition: background var(--duration, 200ms) var(--ease-standard), color var(--duration, 200ms) var(--ease-standard);
       flex-shrink: 0;
-      line-height: 1;
+      line-height: 0;
       display: flex;
       align-items: center;
     }
-    .cat-del-btn:not(:disabled):hover { color: #dc2626; background: #fee2e2; }
-    .cat-del-btn:disabled { opacity: .3; cursor: default; }
+    .cat-del-btn:not(:disabled):hover { color: var(--destructive); background: var(--accent); }
+    .cat-del-btn:disabled { opacity: .4; cursor: default; }
 
-    .modal-sub { font: 400 12px/1 var(--font); color: #94a3b8; margin-top: 3px; }
+    .modal-sub { font: var(--weight-normal) 14px/1.4 var(--font); color: var(--muted-foreground); margin-top: 4px; }
 
     /* ─── Holiday Manager ────────────────────────── */
     .hol-row {
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 7px 0;
-      border-bottom: 1px solid #f1f5f9;
+      gap: 12px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
     }
     .hol-date {
-      font: 600 12px/1 var(--font);
-      color: #64748b;
+      font: var(--weight-medium) 14px/1 var(--font);
+      color: var(--muted-foreground);
       min-width: 54px;
       flex-shrink: 0;
     }
     .hol-name {
       flex: 1;
-      font: 400 13px/1.3 var(--font);
-      color: #1e293b;
+      font: var(--weight-normal) 14px/1.4 var(--font);
+      color: var(--foreground);
     }
     .hol-del-btn {
       background: none;
       border: none;
-      font-size: 14px;
       cursor: pointer;
-      color: #94a3b8;
-      padding: 4px;
+      color: var(--muted-foreground);
+      padding: 6px;
       flex-shrink: 0;
-      border-radius: 4px;
+      border-radius: var(--radius-md);
+      line-height: 0;
+      display: flex;
+      align-items: center;
+      transition: background var(--duration, 200ms) var(--ease-standard), color var(--duration, 200ms) var(--ease-standard);
     }
-    .hol-del-btn:hover { color: #dc2626; background: #fee2e2; }
+    .hol-del-btn:hover { color: var(--destructive); background: var(--accent); }
   </style>
 </head>
 <body>
@@ -709,12 +770,18 @@
         </button>
       </div>
       <div class="sep"></div>
-      <button class="cat-mgr-btn" id="cat-mgr-btn" title="Manage categories">✏️ Categories</button>
+      <button class="cat-mgr-btn" id="cat-mgr-btn" title="Manage categories">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>
+        Categories
+      </button>
       <div class="sep"></div>
-      <button class="cat-mgr-btn" id="hol-mgr-btn" title="Manage stat holidays">📅 Holidays</button>
+      <button class="cat-mgr-btn" id="hol-mgr-btn" title="Manage stat holidays">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
+        Holidays
+      </button>
       <div class="sep"></div>
       <button class="export-btn" id="export-btn">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
           <polyline points="7 10 12 15 17 10"/>
           <line x1="12" y1="15" x2="12" y2="3"/>
@@ -750,15 +817,15 @@
 <div class="modal-bg hidden" id="hol-manager-bg">
   <div class="modal" style="width:460px;max-width:96vw">
     <div class="modal-head">
-      <div class="modal-ttl">Stat Holidays — <span id="hol-mgr-label"></span></div>
-      <button class="modal-close" id="hol-mgr-close">×</button>
+      <div class="modal-ttl">Stat holidays — <span id="hol-mgr-label"></span></div>
+      <button class="modal-close" id="hol-mgr-close" title="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
     </div>
     <div id="hol-list" style="max-height:320px;overflow-y:auto"></div>
-    <div style="margin-top:14px;display:flex;gap:8px;align-items:center">
-      <input type="date"  id="hol-add-date" style="padding:7px 8px;border:1.5px solid #d1d9e4;border-radius:6px;font:400 12px/1 var(--font);color:#1e293b;flex-shrink:0">
-      <input type="text"  id="hol-add-name" placeholder="Holiday name…" maxlength="60"
-             style="flex:1;padding:7px 10px;border:1.5px solid #d1d9e4;border-radius:6px;font:400 13px/1 var(--font);color:#1e293b">
-      <button class="btn-save" id="hol-add-btn" style="flex-shrink:0;padding:7px 14px">+ Add</button>
+    <div style="margin-top:16px;display:flex;gap:8px;align-items:center">
+      <input type="date"  id="hol-add-date" style="padding:8px 10px;border:1px solid var(--input);border-radius:var(--radius-md);font:var(--weight-normal) 14px/1.2 var(--font);color:var(--foreground);background:var(--background);flex-shrink:0">
+      <input type="text"  id="hol-add-name" placeholder="Holiday name" maxlength="60"
+             style="flex:1;padding:8px 12px;border:1px solid var(--input);border-radius:var(--radius-md);font:var(--weight-normal) 14px/1.2 var(--font);color:var(--foreground);background:var(--background)">
+      <button class="btn-save" id="hol-add-btn" style="flex:none;height:36px;padding:0 16px">Add</button>
     </div>
   </div>
 </div>
@@ -768,15 +835,15 @@
   <div class="modal" style="width:520px;max-width:96vw">
     <div class="modal-head">
       <div>
-        <div class="modal-ttl">Manage Categories</div>
-        <div class="modal-sub">Rename, recolor, or remove categories</div>
+        <div class="modal-ttl">Manage categories</div>
+        <div class="modal-sub">Rename, recolor, or remove your categories</div>
       </div>
-      <button class="modal-close" id="cat-mgr-close">×</button>
+      <button class="modal-close" id="cat-mgr-close" title="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
     </div>
     <div id="cat-list"></div>
     <div class="modal-actions" style="margin-top:16px">
-      <button class="btn-cancel" id="cat-add-btn">+ Add</button>
-      <button class="btn-save"   id="cat-save-btn">Save Changes</button>
+      <button class="btn-cancel" id="cat-add-btn">Add category</button>
+      <button class="btn-save"   id="cat-save-btn">Save changes</button>
     </div>
   </div>
 </div>
@@ -786,16 +853,16 @@
   <div class="modal">
     <div class="modal-head">
       <div>
-        <div class="modal-ttl" id="modal-ttl">Add Event</div>
+        <div class="modal-ttl" id="modal-ttl">Add event</div>
         <div class="modal-date-lbl" id="modal-date-lbl"></div>
       </div>
-      <button class="modal-close" id="modal-close" title="Close">&times;</button>
+      <button class="modal-close" id="modal-close" title="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
     </div>
 
     <div class="form-row">
       <div class="fld">
-        <label>Title *</label>
-        <input type="text" id="f-title" placeholder="Event title…" maxlength="80">
+        <label>Title</label>
+        <input type="text" id="f-title" placeholder="Add a title" maxlength="80">
       </div>
     </div>
 
@@ -810,11 +877,11 @@
 
     <div class="form-row">
       <div class="fld">
-        <label>Start Date</label>
+        <label>Start date</label>
         <input type="date" id="f-start">
       </div>
       <div class="fld">
-        <label>End Date (optional)</label>
+        <label>End date (optional)</label>
         <input type="date" id="f-end">
       </div>
     </div>
@@ -822,7 +889,7 @@
     <div id="date-err" class="err-msg hidden">End date must be on or after start date.</div>
 
     <div class="modal-actions">
-      <button class="btn-save" id="btn-save">Save Event</button>
+      <button class="btn-save" id="btn-save">Save event</button>
       <button class="btn-del hidden" id="btn-del">Delete</button>
       <button class="btn-cancel" id="btn-cancel">Cancel</button>
     </div>
@@ -838,7 +905,7 @@ const TRACK_H   = 28;   // matches --track-h
 const BAR_H     = 26;   // matches --bar-h
 const CELL_HDR_H = 11;  // actual rendered height of .cell-hdr (7px font + 3px padding + 1px border)
 
-const MONTHS  = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+const MONTHS  = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const MONTH_LG= ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const DOW     = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
@@ -1185,8 +1252,8 @@ function renderCalendar() {
         for (const name of hMap[dateStr]) {
           const chip = document.createElement('div');
           chip.className = 'chip cat-holidays';
-          chip.style.background = '#b0b8c4';
-          chip.style.color      = '#fff';
+          chip.style.background = 'var(--muted)';
+          chip.style.color      = 'var(--foreground)';
           chip.style.border     = '';
           chip.textContent = name;
           chip.title = name;
@@ -1249,7 +1316,7 @@ function openModal(dateStr, ev) {
   editId = ev ? ev.id : null;
 
   const { year, month, day } = parseDate(dateStr);
-  document.getElementById('modal-ttl').textContent = ev ? 'Edit Event' : 'Add Event';
+  document.getElementById('modal-ttl').textContent = ev ? 'Edit event' : 'Add event';
   document.getElementById('modal-date-lbl').textContent =
     `${MONTH_LG[month]} ${day}, ${year}`;
 
@@ -1337,10 +1404,12 @@ function exportPNG() {
   const totalW     = Math.max(pageHeader.scrollWidth, calWrap.scrollWidth);
   const totalH     = pageHeader.offsetHeight + calWrap.scrollHeight;
 
+  const pageBg = getComputedStyle(document.body).backgroundColor || '#ffffff';
+
   html2canvas(document.body, {
     scale: 2,
     useCORS: true,
-    backgroundColor: '#e8ecf1',
+    backgroundColor: pageBg,
     x: 0, y: 0,
     width:  totalW,
     height: totalH,
@@ -1637,13 +1706,14 @@ function onChipResizeEnd(e) {
 }
 
 // ── Categories ───────────────────────────────────────────────
+// Grounded Grain palette: 4 solid semantic hues + 2 neutral dashed styles.
 const DEFAULT_CATEGORIES = [
-  { id: 'adventures', label: 'Adventures',         color: '#f97316', style: 'solid'  },
-  { id: 'occasions',  label: 'Occasions & Events', color: '#eab308', style: 'solid'  },
-  { id: 'holidays',   label: 'Holiday & Trips',    color: '#0891b2', style: 'solid'  },
-  { id: 'network',    label: 'Network/Career',     color: '#16a34a', style: 'solid'  },
-  { id: 'misogi',     label: 'Misogi',             color: '#dc2626', style: 'dashed' },
-  { id: 'bucketlist', label: 'Bucket List',        color: '#1e293b', style: 'dashed' },
+  { id: 'adventures', label: 'Adventures',         color: '#d33003', style: 'solid'  }, /* destructive — brick orange */
+  { id: 'occasions',  label: 'Occasions & events', color: '#f4da48', style: 'solid'  }, /* warning — ochre */
+  { id: 'holidays',   label: 'Holidays & trips',   color: '#0b59ea', style: 'solid'  }, /* info — true blue */
+  { id: 'network',    label: 'Network & career',   color: '#417713', style: 'solid'  }, /* success — forest */
+  { id: 'misogi',     label: 'Misogi',             color: '#10100f', style: 'dashed' }, /* foreground */
+  { id: 'bucketlist', label: 'Bucket list',        color: '#88887c', style: 'dashed' }, /* muted foreground */
 ];
 
 let categories = [];
@@ -1678,7 +1748,7 @@ function persistHolidayList(year, country, list) {
 }
 
 function openHolManager() {
-  document.getElementById('hol-mgr-label').textContent = `${curYear} · 🇨🇦 Canada`;
+  document.getElementById('hol-mgr-label').textContent = `${curYear} · Canada`;
   renderHolList();
   document.getElementById('hol-manager-bg').classList.remove('hidden');
 }
@@ -1691,7 +1761,7 @@ function renderHolList() {
   const list  = loadHolidayList(curYear, curCountry);
   const el    = document.getElementById('hol-list');
   if (!list.length) {
-    el.innerHTML = '<p style="color:#94a3b8;font:400 12px/1 var(--font);padding:8px 0">No holidays defined.</p>';
+    el.innerHTML = '<p style="color:var(--muted-foreground);font:var(--weight-normal) 14px/1.4 var(--font);padding:8px 0">No holidays yet. Add your first below.</p>';
     return;
   }
   el.innerHTML = list
@@ -1701,7 +1771,7 @@ function renderHolList() {
       <div class="hol-row">
         <span class="hol-date">${formatHolDate(h.date)}</span>
         <span class="hol-name">${h.name}</span>
-        <button class="hol-del-btn" data-date="${h.date}" data-name="${h.name.replace(/"/g,'&quot;')}" title="Remove">🗑</button>
+        <button class="hol-del-btn" data-date="${h.date}" data-name="${h.name.replace(/"/g,'&quot;')}" title="Remove">${TRASH_ICON}</button>
       </div>`)
     .join('');
   el.querySelectorAll('.hol-del-btn').forEach(btn => {
@@ -1747,9 +1817,9 @@ function isLight(hex) {
 function applyCatStyle(el, catId) {
   const cat = getCat(catId);
   if (!cat) {
-    el.style.background = '#94a3b8';
+    el.style.background = 'var(--muted)';
     el.style.border     = '';
-    el.style.color      = '#fff';
+    el.style.color      = 'var(--foreground)';
     return;
   }
   if (cat.style === 'dashed') {
@@ -1759,7 +1829,7 @@ function applyCatStyle(el, catId) {
   } else {
     el.style.background = cat.color;
     el.style.border     = '';
-    el.style.color      = isLight(cat.color) ? '#1e293b' : '#fff';
+    el.style.color      = isLight(cat.color) ? '#10100f' : '#fafaf7';
   }
 }
 
@@ -1798,7 +1868,7 @@ function closeCatManager() {
   document.getElementById('cat-manager-bg').classList.add('hidden');
 }
 
-const TRASH_ICON = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`;
+const TRASH_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`;
 
 function renderCatManager() {
   const list = document.getElementById('cat-list');
@@ -1844,7 +1914,7 @@ function renderCatManager() {
 
 function addStagedCat() {
   const rand = Math.random().toString(36).slice(2, 6);
-  stagedCats.push({ id: `cat-${rand}`, label: 'New Category', color: '#6366f1', style: 'solid' });
+  stagedCats.push({ id: `cat-${rand}`, label: 'New category', color: '#0b59ea', style: 'solid' });
   renderCatManager();
   // Focus the new name input
   const inputs = document.querySelectorAll('#cat-list .cat-name-inp');
@@ -1854,7 +1924,7 @@ function addStagedCat() {
 function commitCatChanges() {
   // Validate: ensure all labels are non-empty
   for (const c of stagedCats) {
-    if (!c.label.trim()) { alert('All categories must have a name.'); return; }
+    if (!c.label.trim()) { alert('Every category needs a name.'); return; }
   }
   categories = stagedCats.map(c => ({ ...c, label: c.label.trim() }));
   persistCategories();
