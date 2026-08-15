@@ -3837,11 +3837,13 @@ function applyTextScale(scale, { rerender = true } = {}) {
   // scale, so the grid has to be rebuilt rather than merely restyled.
   buildGrid();
 
-  // Like the width and height sliders, this drops out of Fit — under Fit the
-  // taller rows just make it zoom further out, so the type ends up barely
-  // larger on screen and the control feels dead. "Fit to screen" goes back.
-  if (sizeLocked) applyLockedRowHeight();   // a lock outranks the slider
-  else            applyManualSize();
+  // Unlike the width and height sliders, this keeps whatever mode you're in.
+  // Under Fit that means the year stays on screen and the extra row height is
+  // paid for with zoom, so the type grows against the cell rather than against
+  // the display. Leave Fit (or lock) for text that grows on screen too.
+  if (sizeLocked)   applyLockedRowHeight();   // a lock outranks the slider
+  else if (fitMode) fitToScreen();
+  else              applyManualSize();
   syncSizePanel();
 }
 
