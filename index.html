@@ -752,6 +752,113 @@
     }
     .hol-del-btn:hover { color: var(--destructive); background: var(--accent); }
 
+    /* ── Today marker ──────────────────────────────────────── */
+    .day-cell.today {
+      box-shadow: inset 0 0 0 2px var(--ring);
+      position: relative;
+      z-index: 2;
+    }
+    .day-cell.today .cell-hdr {
+      background: var(--primary);
+      border-color: var(--primary);
+    }
+    .day-cell.today .cell-hdr-txt {
+      color: var(--primary-foreground) !important;
+      font-weight: var(--weight-medium);
+    }
+
+    /* ── Legend filtering ──────────────────────────────────── */
+    .leg-item {
+      background: none;
+      border: none;
+      font-family: var(--font);
+      cursor: pointer;
+      border-radius: var(--radius-md);
+      padding: 3px 6px;
+      transition: opacity var(--duration) var(--ease-standard),
+                  background var(--duration) var(--ease-standard);
+    }
+    .leg-item:hover { background: var(--accent); }
+    .leg-item.muted { opacity: 0.4; }
+    .leg-item.active { background: var(--accent); }
+
+    /* Non-spotlighted events recede but stay legible enough to keep context. */
+    .spot-dim { opacity: 0.12 !important; }
+    .ev-bar.spot-dim, .chip.spot-dim { pointer-events: none; }
+
+    /* ── Undo toast ────────────────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: 74px;               /* clears the zoom bar */
+      left: 50%;
+      transform: translateX(-50%) translateY(4px);
+      z-index: 400;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: var(--primary);
+      color: var(--primary-foreground);
+      border-radius: var(--radius-full);
+      padding: 9px 10px 9px 18px;
+      box-shadow: var(--shadow-xl);
+      font: var(--weight-normal) 13px/1 var(--font);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--duration-150) var(--ease-standard),
+                  transform var(--duration-150) var(--ease-standard);
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+      pointer-events: auto;
+    }
+    #toast button {
+      font: var(--weight-medium) 13px/1 var(--font);
+      color: var(--primary);
+      background: var(--primary-foreground);
+      border: none;
+      border-radius: var(--radius-full);
+      padding: 6px 13px;
+      cursor: pointer;
+      transition: opacity var(--duration) var(--ease-standard);
+    }
+    #toast button:hover { opacity: 0.85; }
+
+    /* ── Modal motion (Grain: fade + 4px rise) ─────────────── */
+    @keyframes modal-fade { from { opacity: 0 } to { opacity: 1 } }
+    @keyframes modal-rise {
+      from { opacity: 0; transform: translateY(4px) }
+      to   { opacity: 1; transform: translateY(0) }
+    }
+    .modal-bg:not(.hidden) {
+      animation: modal-fade var(--duration-150) var(--ease-standard) both;
+    }
+    .modal-bg:not(.hidden) > .modal {
+      animation: modal-rise var(--duration-200) var(--ease-standard) both;
+    }
+
+    /* ── Focus rings ───────────────────────────────────────── */
+    .day-cell:focus-visible {
+      outline: 2px solid var(--ring);
+      outline-offset: -2px;
+      position: relative;
+      z-index: 3;
+    }
+    .leg-item:focus-visible,
+    #toast button:focus-visible,
+    .zoom-action:focus-visible,
+    .zoom-pct-btn:focus-visible {
+      outline: 2px solid var(--ring);
+      outline-offset: 2px;
+    }
+    #toast button:focus-visible { outline-color: var(--primary-foreground); }
+
+    @media (prefers-reduced-motion: reduce) {
+      .modal-bg:not(.hidden),
+      .modal-bg:not(.hidden) > .modal { animation: none; }
+      #toast { transition: opacity var(--duration-75) linear; }
+    }
+
     /* ── Repeat control ────────────────────────────────────── */
     .repeat-row {
       display: flex; align-items: flex-start; gap: 9px;
@@ -947,6 +1054,11 @@
         </button>
       </div>
       <div class="sep"></div>
+      <button class="cat-mgr-btn" id="today-btn" title="Jump to today">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/></svg>
+        Today
+      </button>
+      <div class="sep"></div>
       <button class="cat-mgr-btn" id="cat-mgr-btn" title="Manage categories">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>
         Categories
@@ -985,6 +1097,12 @@
       <div class="cal-grid" id="cal-grid"></div>
     </div>
   </div>
+</div>
+
+<!-- Undo toast -->
+<div id="toast" role="status" aria-live="polite">
+  <span id="toast-msg"></span>
+  <button type="button" id="toast-undo">Undo</button>
 </div>
 
 <!-- Zoom bar -->
@@ -1210,6 +1328,49 @@ function getHolidays(year, country) {
   }
 
   return list;
+}
+
+// ── Undo toast ───────────────────────────────────────────────
+// Undo works off a snapshot of the affected years taken before the change.
+// Cheap (these arrays are small) and immune to drift, since it restores
+// state wholesale rather than trying to invert each operation.
+
+let _undo      = null;
+let _toastTimer = null;
+const TOAST_MS = 6000;
+
+function snapshotYears(...years) {
+  const snap = {};
+  for (const y of new Set(years)) {
+    if (y == null) continue;
+    snap[y] = JSON.parse(JSON.stringify(allEvents[y] || []));
+  }
+  return snap;
+}
+
+function showToast(message, snap) {
+  _undo = snap;
+  document.getElementById('toast-msg').textContent = message;
+  const toast = document.getElementById('toast');
+  toast.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(hideToast, TOAST_MS);
+}
+
+function hideToast() {
+  document.getElementById('toast').classList.remove('show');
+  clearTimeout(_toastTimer);
+  _undo = null;
+}
+
+function performUndo() {
+  if (!_undo) return;
+  for (const [y, list] of Object.entries(_undo)) {
+    allEvents[+y] = list;
+    persist(+y);
+  }
+  hideToast();
+  renderCalendar();
 }
 
 // ── Yearly repeats ───────────────────────────────────────────
@@ -1482,6 +1643,17 @@ function renderCalendar() {
       cell.dataset.date = dateStr;
       cell.addEventListener('click', () => openModal(dateStr, null));
 
+      // Keyboard access: every real day is a tab stop that opens the dialog.
+      cell.tabIndex = 0;
+      cell.setAttribute('role', 'button');
+      cell.setAttribute('aria-label',
+        `${MONTH_LG[m]} ${d}, ${curYear}${dateStr === today ? ' (today)' : ''} — add event`);
+      cell.addEventListener('keydown', e => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();          // Space would otherwise scroll the page
+        openModal(dateStr, null);
+      });
+
       // Cell header: "Thu 1"
       const hdr = document.createElement('div');
       hdr.className = 'cell-hdr';
@@ -1546,6 +1718,8 @@ function renderCalendar() {
     row.appendChild(area);
     grid.appendChild(row);
   }
+  applySpotlight();   // freshly drawn bars must respect the active filter
+
   // Row heights depend on how many event tracks a year needs, so the fitted
   // scale is recomputed on every render. Done synchronously — the grid's
   // geometry is final here, and a frame callback never fires in a background
@@ -1669,10 +1843,15 @@ function deleteEvent() {
   // Deleting any occurrence of a repeat removes the stored original, and with
   // it every projected year.
   const year = editFrom != null ? editFrom : parseDate(start).year;
+  const wasSeries = editFrom != null ||
+    (allEvents[year] || []).find(e => e.id === editId)?.repeat === 'yearly';
+  const snap = snapshotYears(year);
+
   allEvents[year] = (allEvents[year] || []).filter(e => e.id !== editId);
   persist(year);
   closeModal();
   renderCalendar();
+  showToast(wasSeries ? 'Series deleted.' : 'Event deleted.', snap);
 }
 
 // ── Export PNG ───────────────────────────────────────────────
@@ -1801,16 +1980,22 @@ function onDragEnd(e) {
     if (dateInt(newStart) > dateInt(newEnd)) newStart = newEnd;
   }
 
+  const verb = mode === 'move' ? 'moved' : 'resized';
+
   // Dragging a projected occurrence retargets the stored original, so the
   // whole series moves instead of forking a copy into the year on screen.
   if (ev._from != null) {
+    const snap = snapshotYears(ev._from);
     moveSeriesTo(ev, newStart, newEnd);
     renderCalendar();
+    showToast(`Series ${verb}.`, snap);
     return;
   }
 
   const origYear = parseDate(ev.startDate).year;
   const newYear  = parseDate(newStart).year;
+  const snap = snapshotYears(origYear, newYear);
+
   allEvents[origYear] = (allEvents[origYear] || []).filter(x => x.id !== ev.id);
   persist(origYear);
   if (!allEvents[newYear]) allEvents[newYear] = [];
@@ -1821,6 +2006,7 @@ function onDragEnd(e) {
   });
   persist(newYear);
   renderCalendar();
+  showToast(`Event ${verb}.`, snap);
 }
 
 // Re-anchor a repeating series onto new dates, expressed in whatever year the
@@ -1925,19 +2111,24 @@ function onChipDragEnd(e) {
   if (!targetDate || targetDate === ev.startDate) { renderCalendar(); return; }
 
   if (ev._from != null) {          // moving one occurrence moves the series
+    const snap = snapshotYears(ev._from);
     moveSeriesTo(ev, targetDate, null);
     renderCalendar();
+    showToast('Series moved.', snap);
     return;
   }
 
   const origYear = parseDate(ev.startDate).year;
   const newYear  = parseDate(targetDate).year;
+  const snap = snapshotYears(origYear, newYear);
+
   allEvents[origYear] = (allEvents[origYear] || []).filter(x => x.id !== ev.id);
   persist(origYear);
   if (!allEvents[newYear]) allEvents[newYear] = [];
   allEvents[newYear].push({ ...ev, startDate: targetDate, endDate: null });
   persist(newYear);
   renderCalendar();
+  showToast('Event moved.', snap);
 }
 
 // ── Chip resize-to-extend ────────────────────────────────────
@@ -2013,12 +2204,15 @@ function onChipResizeEnd(e) {
   if (!targetDate || targetDate === startDate) return;
 
   if (ev._from != null) {          // extending one occurrence extends the series
+    const snap = snapshotYears(ev._from);
     moveSeriesTo(ev, startDate, targetDate);
     renderCalendar();
+    showToast('Series resized.', snap);
     return;
   }
 
   const year = parseDate(startDate).year;
+  const snap = snapshotYears(year);
   const arr  = allEvents[year] || [];
   const idx  = arr.findIndex(x => x.id === ev.id);
   if (idx !== -1) arr[idx] = { ...arr[idx], endDate: targetDate };
@@ -2026,6 +2220,7 @@ function onChipResizeEnd(e) {
   allEvents[year] = arr;
   persist(year);
   renderCalendar();
+  showToast('Event resized.', snap);
 }
 
 // ── Categories ───────────────────────────────────────────────
@@ -2158,6 +2353,9 @@ function applyCatStyle(el, catId) {
   }
 }
 
+// ── Legend + category spotlight ──────────────────────────────
+let spotlightCat = null;   // category id being spotlighted, or null for all
+
 function renderLegend() {
   const el = document.getElementById('legend');
   if (!el) return;
@@ -2165,11 +2363,39 @@ function renderLegend() {
     const swStyle = cat.style === 'dashed'
       ? `background:transparent;border:2.5px dashed ${cat.color};`
       : `background:${cat.color};`;
-    return `<div class="leg-item">
+    return `<button type="button" class="leg-item" data-cat="${cat.id}"
+              aria-pressed="false" title="Spotlight ${cat.label}">
       <span class="leg-swatch" style="${swStyle}"></span>
       <span class="leg-label">${cat.label}</span>
-    </div>`;
+    </button>`;
   }).join('');
+
+  el.querySelectorAll('.leg-item').forEach(btn => {
+    btn.addEventListener('click', () => toggleSpotlight(btn.dataset.cat));
+  });
+  applySpotlight();
+}
+
+function toggleSpotlight(catId) {
+  spotlightCat = (spotlightCat === catId) ? null : catId;
+  applySpotlight();
+}
+
+// Dim everything outside the spotlighted category. Applied after every render
+// so newly drawn bars pick up the current filter.
+function applySpotlight() {
+  const on = spotlightCat !== null;
+
+  document.querySelectorAll('.leg-item').forEach(btn => {
+    const isActive = on && btn.dataset.cat === spotlightCat;
+    btn.classList.toggle('active', isActive);
+    btn.classList.toggle('muted', on && !isActive);
+    btn.setAttribute('aria-pressed', String(isActive));
+  });
+
+  document.querySelectorAll('.ev-bar, .chip').forEach(el => {
+    el.classList.toggle('spot-dim', on && !el.classList.contains(`cat-${spotlightCat}`));
+  });
 }
 
 function renderCatSelect() {
@@ -2322,6 +2548,14 @@ document.addEventListener('keydown', e => {
     return;
   }
 
+  // Escape dismisses a pending undo; Ctrl/Cmd+Z takes it.
+  if (e.key === 'Escape' && _undo) { hideToast(); return; }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && _undo) {
+    e.preventDefault();
+    performUndo();
+    return;
+  }
+
   // Zoom keyboard shortcuts (Ctrl/Cmd)
   if (e.ctrlKey || e.metaKey) {
     if (e.key === '=' || e.key === '+') { e.preventDefault(); setZoom(curZoom + ZOOM_STEP); }
@@ -2329,6 +2563,37 @@ document.addEventListener('keydown', e => {
     if (e.key === '0')                  { e.preventDefault(); fitToWindow(); }
   }
 });
+
+// ── Today ────────────────────────────────────────────────────
+function goToToday() {
+  const t = todayStr();
+  const { year } = parseDate(t);
+
+  // Today may fall outside the planner's range; the button is disabled then.
+  if (year < YEAR_MIN || year > YEAR_MAX) return;
+  if (year !== curYear) setYear(year);
+
+  const cell = document.querySelector(`.day-cell[data-date="${t}"]`);
+  if (!cell) return;
+  cell.scrollIntoView({
+    block: 'center', inline: 'center',
+    behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+  });
+  cell.focus({ preventScroll: true });
+}
+
+function updateTodayBtn() {
+  const { year } = parseDate(todayStr());
+  const btn = document.getElementById('today-btn');
+  const out = year < YEAR_MIN || year > YEAR_MAX;
+  btn.disabled = out;
+  btn.title = out ? `Today (${year}) is outside this planner` : 'Jump to today';
+}
+
+document.getElementById('today-btn').addEventListener('click', goToToday);
+
+// ── Toast wiring ─────────────────────────────────────────────
+document.getElementById('toast-undo').addEventListener('click', performUndo);
 
 // ── Zoom ─────────────────────────────────────────────────────
 // The calendar defaults to "fit": scaled so the whole year fills the window.
@@ -2819,6 +3084,7 @@ async function startApp(user) {
   curYear = (savedY && +savedY >= YEAR_MIN && +savedY <= YEAR_MAX) ? +savedY : 2026;
 
   updateYearNav();
+  updateTodayBtn();
   setSyncStatus('saved');
 
   // Hide the overlay first so renderCalendar's fit measures the real viewport.
