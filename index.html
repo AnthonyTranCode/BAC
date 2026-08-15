@@ -1618,9 +1618,10 @@ function getHolidays(year, country) {
 }
 
 // ── Multi-month events ───────────────────────────────────────
-// An event spanning a month boundary used to draw a segment in every month it
-// touched, repeating the title across rows (and truncating it in the short
-// one). It now draws once, in the month holding the most of its days.
+// An event spanning a month boundary draws a segment in every month it touches,
+// so its real start and end stay visible. Only the month holding the most of
+// its days carries the title — continuation segments render blank so the title
+// isn't repeated row after row (and truncated in the short segment).
 
 function daysOfEventInMonth(ev, year, m) {
   const s = parseDate(ev.startDate);
@@ -1817,7 +1818,6 @@ function buildGrid() {
       const { year: sy, month: sm, day: sd } = parseDate(ev.startDate);
       const { year: ey, month: em, day: ed } = parseDate(evEnd);
       if (ev.endDate && ev.endDate !== ev.startDate) {
-        if (barMonth.get(ev) !== pm) continue;   // drawn in its dominant month only
         pBars.push({ s: (sm === pm && sy === curYear) ? sd : 1,
                      e: (em === pm && ey === curYear) ? ed : pdim });
       } else {
@@ -1865,7 +1865,6 @@ function buildGrid() {
       const { year: ey, month: em, day: ed } = parseDate(evEnd);
 
       if (ev.endDate && ev.endDate !== ev.startDate) {
-        if (barMonth.get(ev) !== m) continue;    // drawn in its dominant month only
         const bs = (sm === m && sy === curYear) ? sd : 1;
         const be = (em === m && ey === curYear) ? ed : dim;
         // The block is drawn in every month it covers, so the real span stays
