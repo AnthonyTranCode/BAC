@@ -470,6 +470,117 @@
     }
     .zoom-pct-btn:hover { background: rgb(250 250 247 / 0.18); }
 
+    .zoom-fit-btn {
+      height: 30px; padding: 0 12px;
+      border: none; background: transparent;
+      color: var(--primary-foreground); font: var(--weight-medium) 14px/1 var(--font);
+      border-radius: var(--radius-md); cursor: pointer;
+      transition: background var(--duration-150, 150ms) var(--ease-standard);
+    }
+    .zoom-fit-btn:hover  { background: rgb(250 250 247 / 0.18); }
+    #size-btn { padding: 0 9px; display: flex; align-items: center; }
+
+    /* ── Manual size panel ─────────────────────────────────── */
+    .size-panel {
+      position: fixed;
+      bottom: 74px; left: 50%;
+      transform: translateX(-50%) translateY(4px);
+      z-index: 350;
+      width: 250px;
+      background: var(--primary);
+      color: var(--primary-foreground);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-xl);
+      padding: 14px 16px 12px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--duration-150) var(--ease-standard),
+                  transform var(--duration-150) var(--ease-standard);
+    }
+    .size-panel.open {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+      pointer-events: auto;
+    }
+    .size-panel.hidden { display: none; }
+
+    .size-row {
+      display: flex; align-items: baseline; justify-content: space-between;
+      font: var(--weight-normal) 12px/1 var(--font);
+      margin-bottom: 7px;
+    }
+    .size-row + input { margin-bottom: 14px; }
+    .size-val {
+      font-weight: var(--weight-medium);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .size-panel input[type="range"] {
+      -webkit-appearance: none; appearance: none;
+      width: 100%; height: 3px; margin: 0;
+      background: rgb(250 250 247 / 0.25);
+      border-radius: var(--radius-full);
+      cursor: pointer;
+    }
+    .size-panel input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none;
+      width: 14px; height: 14px; border-radius: var(--radius-full);
+      background: var(--primary-foreground);
+      border: none; cursor: grab;
+    }
+    .size-panel input[type="range"]::-moz-range-thumb {
+      width: 14px; height: 14px; border-radius: var(--radius-full);
+      background: var(--primary-foreground); border: none; cursor: grab;
+    }
+    .size-panel input[type="range"]:focus-visible {
+      outline: 2px solid var(--primary-foreground); outline-offset: 3px;
+    }
+
+    .size-foot {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 8px; margin-top: 2px;
+    }
+    .size-note {
+      font: var(--weight-normal) 11px/1.3 var(--font);
+      color: rgb(250 250 247 / 0.6);
+      margin-top: 9px;
+    }
+
+    .size-lock {
+      display: flex; align-items: center; gap: 6px;
+      font: var(--weight-medium) 12px/1 var(--font);
+      color: var(--primary-foreground);
+      background: none;
+      border: 1px solid rgb(250 250 247 / 0.28);
+      border-radius: var(--radius-full);
+      padding: 5px 11px; cursor: pointer;
+      transition: background var(--duration) var(--ease-standard),
+                  border-color var(--duration) var(--ease-standard);
+    }
+    .size-lock:hover { background: rgb(250 250 247 / 0.14); }
+    .size-lock.on {
+      background: var(--primary-foreground);
+      border-color: var(--primary-foreground);
+      color: var(--primary);
+    }
+
+    /* Locked: the sliders and Fit are inert until it's unlocked again. */
+    .size-panel.locked input[type="range"] { opacity: 0.35; pointer-events: none; }
+    .size-panel.locked #size-fit { opacity: 0.35; pointer-events: none; }
+    .zoom-fit-btn:disabled { opacity: 0.35; cursor: default; }
+    .zoom-fit-btn:disabled:hover { background: none; }
+    #size-fit {
+      flex-shrink: 0;
+      font: var(--weight-medium) 12px/1 var(--font);
+      color: var(--primary); background: var(--primary-foreground);
+      border: none; border-radius: var(--radius-full);
+      padding: 6px 12px; cursor: pointer;
+      transition: opacity var(--duration) var(--ease-standard);
+    }
+    #size-fit:hover { opacity: 0.85; }
+    .zoom-fit-btn.active { background: rgb(250 250 247 / 0.28); }
+    .zoom-fit-btn:focus-visible { outline: 2px solid var(--primary-foreground); outline-offset: 2px; }
+
     .zoom-divider {
       width: 1px; height: 18px;
       background: rgb(250 250 247 / 0.2);
@@ -1219,8 +1330,38 @@
   <button type="button" id="toast-undo">Undo</button>
 </div>
 
+<!-- Manual sizing panel -->
+<div id="size-panel" class="size-panel hidden" role="dialog" aria-label="Calendar size">
+  <div class="size-row">
+    <label for="size-w">Column width</label>
+    <span class="size-val" id="size-w-val"></span>
+  </div>
+  <input type="range" id="size-w" min="20" max="240" step="1">
+
+  <div class="size-row">
+    <label for="size-h">Row height</label>
+    <span class="size-val" id="size-h-val"></span>
+  </div>
+  <input type="range" id="size-h" min="24" max="320" step="1">
+
+  <div class="size-foot">
+    <button type="button" class="size-lock" id="size-lock" aria-pressed="false">
+      <svg id="size-lock-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
+      <span id="size-lock-txt">Lock</span>
+    </button>
+    <button type="button" id="size-fit">Fit to screen</button>
+  </div>
+  <div class="size-note" id="size-note"></div>
+</div>
+
 <!-- Zoom bar -->
 <div class="zoom-bar" id="zoom-bar">
+  <button class="zoom-fit-btn" id="size-btn" title="Set column width and row height" aria-expanded="false">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 3H3v18h18z"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+  </button>
+  <div class="zoom-divider"></div>
+  <button class="zoom-fit-btn" id="fit-btn" title="Fit the whole year to the screen (Ctrl 0)">Fit</button>
+  <div class="zoom-divider"></div>
   <button class="zoom-action" id="zoom-out" title="Zoom out (Ctrl −)">−</button>
   <div class="zoom-divider"></div>
   <button class="zoom-pct-btn" id="zoom-pct" title="Reset to 100% (Ctrl 0)">100%</button>
@@ -1341,7 +1482,15 @@
 
 <script>
 // ── Constants ────────────────────────────────────────────────
-const CELL_W    = 57;   // matches --cell-w
+const CELL_W    = 57;   // base width; --cell-w is computed by Fit and usually differs
+
+// Live column width. Fit sizes columns from the viewport, so anything doing
+// pixel maths must read the current value rather than the base constant.
+function cellW() {
+  const v = parseFloat(
+    getComputedStyle(document.documentElement).getPropertyValue('--cell-w'));
+  return v || CELL_W;
+}
 const TRACK_H   = 28;   // matches --track-h
 const BAR_H     = 26;   // matches --bar-h
 const CELL_HDR_H = 11;  // actual rendered height of .cell-hdr (7px font + 3px padding + 1px border)
@@ -1361,6 +1510,8 @@ let allEvents  = {};
 let editId     = null;
 let editFrom   = null;   // origin year, when editing a projected repeat occurrence
 let curZoom    = 1.0;
+let rowHTarget = null;    // row height Fit computed; null = size to content
+let _fitting   = false;   // guards fitToScreen → buildGrid → fitToScreen
 
 // ── Utilities ────────────────────────────────────────────────
 function uid() {
@@ -1582,7 +1733,16 @@ function assignTracks(bars) {
 }
 
 // ── Calendar Render ──────────────────────────────────────────
+const ROW_GAP = 1;   // .month-row margin-bottom
+const FIT_EPS = 2;   // slack so sub-pixel rounding can't tip Fit into overflow
+
+// Public entry: rebuild, then re-fit if the content changed while fitted.
 function renderCalendar() {
+  buildGrid();
+  if (fitMode && !_fitting) fitToScreen();
+}
+
+function buildGrid() {
   const grid  = document.getElementById('cal-grid');
   grid.innerHTML = '';
 
@@ -1696,8 +1856,8 @@ function renderCalendar() {
       if (dow === 0 || dow === 6) {
         const band = document.createElement('div');
         band.className = 'wknd-col';
-        band.style.left  = ((d - 1) * CELL_W) + 'px';
-        band.style.width = CELL_W + 'px';
+        band.style.left  = `calc(${d - 1} * var(--cell-w))`;
+        band.style.width = 'var(--cell-w)';
         area.appendChild(band);
       }
     }
@@ -1709,8 +1869,8 @@ function renderCalendar() {
     for (const bar of trackedBars) {
       const barEl = document.createElement('div');
       barEl.className = `ev-bar cat-${bar.category}`;
-      barEl.style.left  = ((bar.s - 1) * CELL_W + 1) + 'px';
-      barEl.style.width = ((bar.e - bar.s + 1) * CELL_W - 2) + 'px';
+      barEl.style.left  = `calc(${bar.s - 1} * var(--cell-w) + 1px)`;
+      barEl.style.width = `calc(${bar.e - bar.s + 1} * var(--cell-w) - 2px)`;
       barEl.style.top   = (bar.track * TRACK_H + 1) + 'px';
       barEl.textContent = (bar.emoji ? bar.emoji + ' ' : '') + bar.title;
       barEl.title       = bar.title;
@@ -1852,19 +2012,14 @@ function renderCalendar() {
     row.appendChild(area);
     grid.appendChild(row);
   }
+  // Keep the height Fit computed; never go below what the content needs.
+  if (rowHTarget != null) {
+    const h = Math.max(rowHTarget, uniformCellH);
+    grid.querySelectorAll('.day-cell').forEach(c => { c.style.height = h + 'px'; });
+  }
+
   growCellsToFitChips();
   applySpotlight();   // freshly drawn bars must respect the active filter
-
-  // Row heights depend on how many event tracks a year needs, so the fitted
-  // scale is recomputed on every render. Done synchronously — the grid's
-  // geometry is final here, and a frame callback never fires in a background
-  // tab, which would leave the calendar unscaled until the tab got focus.
-  if (fitMode) fitToWindow();
-
-  // Re-check after the fit: changing the zoom shifts sub-pixel rounding of the
-  // measurements above, which can leave a busy cell a few pixels short on the
-  // very first paint.
-  growCellsToFitChips();
 
   requestAnimationFrame(fitChips);   // font-only; safe to defer
 }
@@ -2257,7 +2412,7 @@ function startDrag(e, ev, mode, barEl) {
     startX:    e.clientX,
     origStart: ev.startDate,
     origEnd:   ev.endDate || ev.startDate,
-    origLeft:  parseFloat(barEl.style.left)  || 0,
+    origLeft:  barEl.offsetLeft,   // style.left is a calc() expression now
     origWidth: barEl.offsetWidth,
     barEl,
     moved: false,
@@ -2273,19 +2428,19 @@ function onDragMove(e) {
   const { mode, barEl, origLeft, origWidth, startX } = dragState;
   const deltaX = e.clientX - startX;
   if (Math.abs(deltaX) > 4) dragState.moved = true;
-  // deltaX is screen pixels, but a column is CELL_W in the grid's own
-  // coordinates — which the page-scaler's CSS zoom scales on screen.
-  const deltaDays = Math.round(deltaX / (CELL_W * curZoom));
+  // deltaX is screen pixels; a column occupies cellW() × zoom of them.
+  const col       = cellW();
+  const deltaDays = Math.round(deltaX / (col * curZoom));
 
   if (mode === 'move') {
-    barEl.style.transform = `translateX(${deltaDays * CELL_W}px)`;
+    barEl.style.transform = `translateX(${deltaDays * col}px)`;
   } else if (mode === 'resize-end') {
-    const newW = Math.max(CELL_W, origWidth + deltaDays * CELL_W);
+    const newW = Math.max(col, origWidth + deltaDays * col);
     barEl.style.width = newW + 'px';
   } else { // resize-start
-    const newL = origLeft + deltaDays * CELL_W;
-    const newW = origWidth - deltaDays * CELL_W;
-    if (newW >= CELL_W) { barEl.style.left = newL + 'px'; barEl.style.width = newW + 'px'; }
+    const newL = origLeft + deltaDays * col;
+    const newW = origWidth - deltaDays * col;
+    if (newW >= col) { barEl.style.left = newL + 'px'; barEl.style.width = newW + 'px'; }
   }
 }
 
@@ -2297,7 +2452,7 @@ function onDragEnd(e) {
 
   const { mode, ev, origStart, origEnd, moved, barEl } = dragState;
   const deltaX    = e.clientX - dragState.startX;
-  const deltaDays = Math.round(deltaX / (CELL_W * curZoom));
+  const deltaDays = Math.round(deltaX / (cellW() * curZoom));
   dragState = null;
 
   barEl.classList.remove('dragging');
@@ -2525,7 +2680,7 @@ function onChipResizeMove(e) {
     const spanDays = Math.round((dateInt(cell.dataset.date) - dateInt(startDate)));
     // spanDays is approx; compute real via addDaysToDate
     const numDays = (new Date(cell.dataset.date) - new Date(startDate)) / 86400000 + 1;
-    ghostBar.style.width = Math.max(numDays * CELL_W * curZoom, CELL_W * curZoom) + 'px';
+    ghostBar.style.width = Math.max(numDays, 1) * cellW() * curZoom + 'px';
   } else {
     chipResizeState.lastTarget = null;
   }
@@ -2903,7 +3058,7 @@ document.addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey) {
     if (e.key === '=' || e.key === '+') { e.preventDefault(); setZoom(curZoom + ZOOM_STEP); }
     if (e.key === '-' || e.key === '_') { e.preventDefault(); setZoom(curZoom - ZOOM_STEP); }
-    if (e.key === '0')                  { e.preventDefault(); fitToWindow(); }
+    if (e.key === '0')                  { e.preventDefault(); fitToScreen(); }
   }
 });
 
@@ -2938,81 +3093,339 @@ document.getElementById('today-btn').addEventListener('click', goToToday);
 // ── Toast wiring ─────────────────────────────────────────────
 document.getElementById('toast-undo').addEventListener('click', performUndo);
 
-// ── Zoom ─────────────────────────────────────────────────────
-// The calendar defaults to "fit": scaled so the whole year fills the window.
-// Any manual zoom leaves fit mode; clicking the percentage returns to it.
+// ── Zoom and Fit ─────────────────────────────────────────────
+// Two separate mechanisms, deliberately:
+//
+//   Fit  — reshapes the grid. Column width and row height are computed FROM
+//          the viewport so the year fills it edge to edge. Zoom is only a
+//          last resort, for when the content genuinely cannot fit.
+//   Zoom — pure magnification over whatever Fit produced. Never relayouts,
+//          and anchors on the pointer so you zoom into what you're looking at.
 let fitMode = true;
 
 function setZoom(z, { keepFit = false } = {}) {
   if (!keepFit) fitMode = false;
-  curZoom = Math.round(Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, z)) * 100) / 100;
+  // Full precision internally — rounding here made pointer-anchored zoom drift
+  // about half a pixel per step. Only the label is rounded.
+  curZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, z));
   document.getElementById('page-scaler').style.zoom = curZoom;
   const pct = document.getElementById('zoom-pct');
   pct.textContent = Math.round(curZoom * 100) + '%';
-  pct.title = fitMode ? 'Fitted to window (Ctrl 0)' : 'Fit to window (Ctrl 0)';
+  document.getElementById('fit-btn').classList.toggle('active', fitMode);
 }
 
-// Scale at which the year spans the full window width.
-//
-// Width only, deliberately: the grid is far wider than it is tall, so fitting
-// both axes would let height win and leave a third of the window empty to the
-// right. A year planner is read across, so width is the axis worth filling —
-// if the content is taller than the window, it scrolls vertically.
-function computeFitZoom() {
+// Space the grid has to live in, expressed in the grid's own (pre-zoom) units.
+function fitBox(z) {
   const outer = document.getElementById('page-outer');
-  const grid  = document.getElementById('cal-grid');
-  if (!outer || !grid || !grid.firstChild) return curZoom;
-
-  // Derive the intrinsic width from the grid's own geometry rather than
-  // measuring the element: .cal-grid stretches to its container, so its
-  // rendered width always equals the viewport and the ratio comes out 1.
-  const root   = getComputedStyle(document.documentElement);
-  const cellW  = parseFloat(root.getPropertyValue('--cell-w'));
-  const labelW = parseFloat(root.getPropertyValue('--label-w'));
-
-  const wrap = getComputedStyle(document.getElementById('cal-wrap'));
-  const padX = parseFloat(wrap.paddingLeft) + parseFloat(wrap.paddingRight);
-
-  const natW = labelW + 31 * cellW + padX;   // 31 = widest month
-  // A zero/NaN measurement (mid-relayout, or a hidden tab) would otherwise
-  // clamp the zoom to its 30% floor and stick.
-  if (!natW || !outer.clientWidth) return curZoom;
-  return outer.clientWidth / natW;
+  const wrap  = getComputedStyle(document.getElementById('cal-wrap'));
+  const root  = getComputedStyle(document.documentElement);
+  return {
+    w: outer.clientWidth  / z - parseFloat(wrap.paddingLeft) - parseFloat(wrap.paddingRight)
+       - parseFloat(root.getPropertyValue('--label-w')),
+    h: outer.clientHeight / z - parseFloat(wrap.paddingTop)  - parseFloat(wrap.paddingBottom)
+       - 12 * ROW_GAP,
+    outerH: outer.clientHeight,
+  };
 }
 
-function fitToWindow() {
-  fitMode = true;
-  // Applying a fit can push the content tall enough to add a vertical
-  // scrollbar, which takes ~15px off the available width and makes the zoom
-  // we just set overflow horizontally. Settle it in at most two passes, and
-  // floor rather than round so the rounding itself can never overshoot.
-  for (let pass = 0; pass < 2; pass++) {
-    const z = Math.floor(computeFitZoom() * 100) / 100;
-    if (z === curZoom) break;
-    setZoom(z, { keepFit: true });
+// Tallest row the current content needs, in logical px. Has to be measured
+// rather than predicted: it depends on how many lines each chip title wraps
+// to, which is only knowable once laid out at the current column width.
+function measureRequiredRowH() {
+  const cells = [...document.querySelectorAll('.day-cell')];
+  if (!cells.length) return 0;
+  const saved = cells.map(c => c.style.height);
+  cells.forEach(c => { c.style.height = 'auto'; });
+  let max = 0;
+  for (const c of cells) {
+    const h = c.getBoundingClientRect().height / curZoom;
+    if (h > max) max = h;
   }
+  cells.forEach((c, i) => { c.style.height = saved[i]; });
+  return Math.ceil(max);
 }
+
+function applyRowHeight(h) {
+  rowHTarget = h;
+  document.querySelectorAll('.day-cell').forEach(c => { c.style.height = h + 'px'; });
+}
+
+function setColumnWidth(w) {
+  document.documentElement.style.setProperty('--cell-w', w.toFixed(2) + 'px');
+}
+
+// The Fit algorithm.
+//
+// Rows stay strictly uniform, so one busy month sets the height for all twelve.
+// If that exceeds the screen we zoom out — but then recompute BOTH column width
+// and row height against the enlarged effective viewport (viewport ÷ zoom) and
+// re-render, so the grid still fills both axes at the final zoom. Wider columns
+// wrap less text, so the required height shrinks each pass and this converges.
+function fitToScreen() {
+  if (sizeLocked) return;               // the lock outranks every caller
+  const outer = document.getElementById('page-outer');
+  if (!outer || !outer.clientWidth || !outer.clientHeight) return;
+
+  fitMode    = true;
+  _fitting   = true;
+  rowHTarget = null;      // measure against content during the loop
+
+  // Scrollbars appearing mid-calculation would shrink clientWidth/Height and
+  // feed a wrong viewport back into the next pass. Hide them while solving.
+  const savedOverflow = outer.style.overflow;
+  outer.style.overflow = 'hidden';
+
+  let z = 1;
+  for (let pass = 0; pass < 4; pass++) {
+    setZoom(z, { keepFit: true });
+
+    const box = fitBox(z);
+    setColumnWidth(Math.max(1, (box.w - FIT_EPS) / 31));
+    buildGrid();                                  // relayout at this column width
+
+    const evenRow = (box.h - FIT_EPS) / 12;
+    const needed  = measureRequiredRowH();
+
+    if (needed <= evenRow) {
+      applyRowHeight(evenRow);                    // spare height → fill it exactly
+      break;
+    }
+
+    // Too tall for the screen: zoom out by exactly the shortfall.
+    const wrap = getComputedStyle(document.getElementById('cal-wrap'));
+    const padY = parseFloat(wrap.paddingTop) + parseFloat(wrap.paddingBottom);
+    const next = box.outerH / (12 * (needed + ROW_GAP) + padY);
+
+    // Below ZOOM_MIN the text stops being readable, so stop shrinking there and
+    // let it scroll — but still fill the width and any height that is going
+    // spare, rather than leaving the grid floating in the top-left.
+    if (next < ZOOM_MIN) {
+      setZoom(ZOOM_MIN, { keepFit: true });
+      const floorBox = fitBox(ZOOM_MIN);
+      setColumnWidth(Math.max(1, (floorBox.w - FIT_EPS) / 31));
+      buildGrid();
+      applyRowHeight(Math.max(measureRequiredRowH(), (floorBox.h - FIT_EPS) / 12));
+      break;
+    }
+    if (Math.abs(next - z) < 0.005) {             // settled
+      applyRowHeight(Math.max(needed, evenRow));
+      break;
+    }
+    z = next;
+  }
+
+  outer.style.overflow = savedOverflow;
+
+  // One final adjustment: restoring the scrollbars, or sub-pixel rounding in
+  // the row heights, can tip the grid a few pixels into overflow. Shave the
+  // zoom by exactly that ratio rather than re-running the whole solve.
+  const overflow = Math.max(outer.scrollWidth  / outer.clientWidth,
+                            outer.scrollHeight / outer.clientHeight);
+  if (overflow > 1.001 && curZoom / overflow >= ZOOM_MIN) {
+    setZoom(curZoom / overflow, { keepFit: true });
+
+    // Re-fill against the now-larger effective viewport. Cells read --cell-w
+    // and bars position with calc() against it, so this reflows without a
+    // rebuild — and a wider column only ever wraps less text, never more.
+    const box = fitBox(curZoom);
+    setColumnWidth(Math.max(1, (box.w - FIT_EPS) / 31));
+    applyRowHeight(Math.max(measureRequiredRowH(), (box.h - FIT_EPS) / 12));
+  }
+
+  outer.scrollLeft = 0;
+  outer.scrollTop  = 0;
+  _fitting = false;
+
+  if (typeof sizePanelOpen === 'function' && sizePanelOpen()) syncSizePanel();
+}
+
+// ── Manual sizing ────────────────────────────────────────────
+// Direct control over the two dials Fit normally computes. Setting either
+// leaves Fit mode, so a later window resize won't overwrite the choice.
+
+const $sizePanel = document.getElementById('size-panel');
+const $sizeW     = document.getElementById('size-w');
+const $sizeH     = document.getElementById('size-h');
+
+// Locking pins the manual dimensions: Fit, window resizes and the sliders all
+// stop touching them until it's unlocked. Stored outside the bac- namespace so
+// signing out (which clears that cache) doesn't wipe the preference.
+const SIZE_LOCK_KEY = 'planner-size-lock';
+let sizeLocked = false;
+
+function saveSizeLock() {
+  try {
+    if (!sizeLocked) localStorage.removeItem(SIZE_LOCK_KEY);
+    else localStorage.setItem(SIZE_LOCK_KEY, JSON.stringify({
+      cellW: +$sizeW.value, rowH: +$sizeH.value,
+    }));
+  } catch {}
+}
+
+function loadSizeLock() {
+  try {
+    const raw = localStorage.getItem(SIZE_LOCK_KEY);
+    if (!raw) return null;
+    const v = JSON.parse(raw);
+    return (v && v.cellW > 0 && v.rowH > 0) ? v : null;
+  } catch { return null; }
+}
+
+function setSizeLocked(on) {
+  sizeLocked = on;
+  $sizePanel.classList.toggle('locked', on);
+  document.getElementById('size-lock').classList.toggle('on', on);
+  document.getElementById('size-lock').setAttribute('aria-pressed', String(on));
+  document.getElementById('size-lock-txt').textContent = on ? 'Locked' : 'Lock';
+  document.getElementById('size-lock-icon').innerHTML = on
+    ? '<rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>'
+    : '<rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/>';
+
+  const fitBtn = document.getElementById('fit-btn');
+  fitBtn.disabled = on;
+  fitBtn.title = on ? 'Size is locked — unlock to fit' : 'Fit the whole year to the screen (Ctrl 0)';
+  if (on) { fitMode = false; fitBtn.classList.remove('active'); }
+  saveSizeLock();
+  syncSizePanel();
+}
+
+// Re-apply a locked size on load, in place of the usual fit.
+function applyStoredSizeLock() {
+  const v = loadSizeLock();
+  if (!v) return false;
+  fitMode = false;
+  setColumnWidth(v.cellW);
+  applyRowHeight(Math.max(v.rowH, Math.ceil(measureRequiredRowH())));
+  growCellsToFitChips();
+  $sizeW.value = v.cellW;
+  $sizeH.value = v.rowH;
+  setSizeLocked(true);
+  return true;
+}
+
+function sizePanelOpen() { return $sizePanel.classList.contains('open'); }
+
+function openSizePanel() {
+  hideToast();                       // they share the same spot above the zoom bar
+  $sizePanel.classList.remove('hidden');
+  // Next frame, so the transition runs from the hidden state.
+  requestAnimationFrame(() => $sizePanel.classList.add('open'));
+  setTimeout(() => $sizePanel.classList.add('open'), 0);   // hidden tabs get no frame
+  document.getElementById('size-btn').setAttribute('aria-expanded', 'true');
+  syncSizePanel();
+}
+
+function closeSizePanel() {
+  $sizePanel.classList.remove('open');
+  document.getElementById('size-btn').setAttribute('aria-expanded', 'false');
+  setTimeout(() => { if (!sizePanelOpen()) $sizePanel.classList.add('hidden'); }, 160);
+}
+
+// Reflect the current geometry back into the sliders.
+function syncSizePanel() {
+  const w = Math.round(cellW());
+  const h = Math.round(parseFloat(document.querySelector('.day-cell')?.style.height) || 0);
+
+  // A row can never be shorter than its content, so that becomes the slider's
+  // floor rather than letting the user drag into clipping.
+  const floor = Math.max(+$sizeH.min, Math.ceil(measureRequiredRowH()));
+  $sizeH.min = floor;
+
+  $sizeW.value = Math.min(Math.max(w, +$sizeW.min), +$sizeW.max);
+  $sizeH.value = Math.min(Math.max(h, floor), +$sizeH.max);
+  document.getElementById('size-w-val').textContent = $sizeW.value + ' px';
+  document.getElementById('size-h-val').textContent = $sizeH.value + ' px';
+  document.getElementById('size-note').textContent =
+    sizeLocked ? 'Locked — size stays fixed through resizes and reloads'
+    : fitMode  ? 'Fitted to screen'
+    :            `Row minimum ${floor}px`;
+}
+
+function applyManualSize() {
+  if (sizeLocked) return;
+  fitMode = false;
+  document.getElementById('fit-btn').classList.remove('active');
+
+  // Cells read --cell-w and bars position with calc() against it, so a width
+  // change reflows without a rebuild.
+  setColumnWidth(+$sizeW.value);
+
+  // Width changed how text wraps, so re-derive the floor before applying height.
+  const floor = Math.ceil(measureRequiredRowH());
+  $sizeH.min = Math.max(24, floor);
+  const h = Math.max(+$sizeH.value, floor);
+  applyRowHeight(h);
+  growCellsToFitChips();
+
+  $sizeH.value = h;
+  document.getElementById('size-w-val').textContent = $sizeW.value + ' px';
+  document.getElementById('size-h-val').textContent = Math.round(h) + ' px';
+  document.getElementById('size-note').textContent = `Row minimum ${floor}px`;
+}
+
+document.getElementById('size-btn').addEventListener('click', e => {
+  e.stopPropagation();
+  sizePanelOpen() ? closeSizePanel() : openSizePanel();
+});
+$sizeW.addEventListener('input', applyManualSize);
+$sizeH.addEventListener('input', applyManualSize);
+document.getElementById('size-fit').addEventListener('click', () => {
+  if (sizeLocked) return;
+  fitToScreen();
+  syncSizePanel();
+});
+
+document.getElementById('size-lock').addEventListener('click', () => {
+  setSizeLocked(!sizeLocked);
+});
+
+// Click-away and Escape close the panel.
+document.addEventListener('mousedown', e => {
+  if (sizePanelOpen() && !$sizePanel.contains(e.target)) closeSizePanel();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && sizePanelOpen()) closeSizePanel();
+});
 
 // Re-fit when the window changes size, but only while still in fit mode.
 let _fitTimer = null;
 window.addEventListener('resize', () => {
-  if (!fitMode) return;
+  if (!fitMode || sizeLocked) return;
   clearTimeout(_fitTimer);
-  _fitTimer = setTimeout(fitToWindow, 120);
+  _fitTimer = setTimeout(fitToScreen, 120);
 });
 
 // Zoom bar buttons
-document.getElementById('zoom-in') .addEventListener('click', () => setZoom(curZoom + ZOOM_STEP));
-document.getElementById('zoom-out').addEventListener('click', () => setZoom(curZoom - ZOOM_STEP));
-document.getElementById('zoom-pct').addEventListener('click', fitToWindow);
+document.getElementById('fit-btn')  .addEventListener('click', fitToScreen);
+document.getElementById('zoom-in')  .addEventListener('click', () => zoomAtPoint(+ZOOM_STEP));
+document.getElementById('zoom-out') .addEventListener('click', () => zoomAtPoint(-ZOOM_STEP));
+document.getElementById('zoom-pct') .addEventListener('click', fitToScreen);
 
-// Ctrl/Cmd + scroll wheel
+// Free zoom: magnify around a point, keeping whatever is under it in place.
+// Defaults to the centre of the viewport (for the +/- buttons).
+function zoomAtPoint(delta, clientX, clientY) {
+  const outer = document.getElementById('page-outer');
+  const rect  = outer.getBoundingClientRect();
+  const px = (clientX === undefined ? rect.left + rect.width  / 2 : clientX) - rect.left;
+  const py = (clientY === undefined ? rect.top  + rect.height / 2 : clientY) - rect.top;
+
+  // Content coordinate currently under that point, in pre-zoom units.
+  const cx = (outer.scrollLeft + px) / curZoom;
+  const cy = (outer.scrollTop  + py) / curZoom;
+
+  setZoom(curZoom + delta);          // no relayout — pure magnification
+
+  outer.scrollLeft = cx * curZoom - px;
+  outer.scrollTop  = cy * curZoom - py;
+}
+
+// Ctrl/Cmd + scroll wheel zooms toward the pointer.
 window.addEventListener('wheel', e => {
   if (!e.ctrlKey && !e.metaKey) return;
   e.preventDefault();
   // Smaller delta for trackpad (deltaMode 0), larger for mouse wheel
   const step = Math.abs(e.deltaY) < 50 ? ZOOM_STEP * 0.5 : ZOOM_STEP;
-  setZoom(curZoom + (e.deltaY < 0 ? step : -step));
+  zoomAtPoint(e.deltaY < 0 ? step : -step, e.clientX, e.clientY);
 }, { passive: false });
 
 // ── Supabase client ──────────────────────────────────────────
@@ -3433,6 +3846,9 @@ async function startApp(user) {
   // Hide the overlay first so renderCalendar's fit measures the real viewport.
   $gate.classList.add('hidden');
   renderCalendar();
+
+  // A locked size takes precedence over the fit that renderCalendar just did.
+  applyStoredSizeLock();
 
   _booted = true;
 }
