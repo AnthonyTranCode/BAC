@@ -1617,6 +1617,37 @@ function getHolidays(year, country) {
   return list;
 }
 
+// ── Multi-month events ───────────────────────────────────────
+// An event spanning a month boundary used to draw a segment in every month it
+// touched, repeating the title across rows (and truncating it in the short
+// one). It now draws once, in the month holding the most of its days.
+
+function daysOfEventInMonth(ev, year, m) {
+  const s = parseDate(ev.startDate);
+  const e = parseDate(ev.endDate || ev.startDate);
+  const evStart = new Date(s.year, s.month, s.day);
+  const evEnd   = new Date(e.year, e.month, e.day);
+  const mStart  = new Date(year, m, 1);
+  const mEnd    = new Date(year, m, daysInMonth(year, m));
+
+  const from = evStart > mStart ? evStart : mStart;
+  const to   = evEnd   < mEnd   ? evEnd   : mEnd;
+  if (to < from) return 0;
+  return Math.round((to - from) / 86400000) + 1;
+}
+
+// Month of `year` that holds the most of this event. Ties go to the earlier
+// month. Only ever considers months in `year`, so an event straddling New Year
+// still appears in the year being viewed.
+function dominantMonthFor(ev, year) {
+  let best = -1, bestDays = 0;
+  for (let m = 0; m < 12; m++) {
+    const d = daysOfEventInMonth(ev, year, m);
+    if (d > bestDays) { bestDays = d; best = m; }
+  }
+  return best;
+}
+
 // ── Undo toast ───────────────────────────────────────────────
 // Undo works off a snapshot of the affected years taken before the change.
 // Cheap (these arrays are small) and immune to drift, since it restores
@@ -1763,6 +1794,15 @@ function buildGrid() {
   const uEvts = eventsForYear(curYear);   // stored events + projected yearly repeats
   const today = todayStr();
 
+  // Which month each multi-day event belongs to. Computed once so both the
+  // height pre-scan and the draw pass agree on where a bar appears.
+  const barMonth = new Map();
+  for (const ev of uEvts) {
+    if (ev.endDate && ev.endDate !== ev.startDate) {
+      barMonth.set(ev, dominantMonthFor(ev, curYear));
+    }
+  }
+
   // Pre-scan all months to find the uniform cell height needed to fit the busiest day
   const MIN_CHIP_H = 20;  // minimum readable chip height in px
   let uniformCellH = 64;  // absolute floor — keeps empty months from feeling cramped
@@ -1777,6 +1817,7 @@ function buildGrid() {
       const { year: sy, month: sm, day: sd } = parseDate(ev.startDate);
       const { year: ey, month: em, day: ed } = parseDate(evEnd);
       if (ev.endDate && ev.endDate !== ev.startDate) {
+        if (barMonth.get(ev) !== pm) continue;   // drawn in its dominant month only
         pBars.push({ s: (sm === pm && sy === curYear) ? sd : 1,
                      e: (em === pm && ey === curYear) ? ed : pdim });
       } else {
@@ -1824,6 +1865,7 @@ function buildGrid() {
       const { year: ey, month: em, day: ed } = parseDate(evEnd);
 
       if (ev.endDate && ev.endDate !== ev.startDate) {
+        if (barMonth.get(ev) !== m) continue;    // drawn in its dominant month only
         const bs = (sm === m && sy === curYear) ? sd : 1;
         const be = (em === m && ey === curYear) ? ed : dim;
         bars.push({ ...ev, s: bs, e: be });
