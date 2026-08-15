@@ -1819,7 +1819,7 @@ function buildGrid() {
       const { year: ey, month: em, day: ed } = parseDate(evEnd);
       if (ev.endDate && ev.endDate !== ev.startDate) {
         pBars.push({ s: (sm === pm && sy === curYear) ? sd : 1,
-                     e: (em === pm && ey === curYear) ? ed : pdim });
+                     e: (em === pm && ey === curYear) ? ed : 31 });
       } else {
         (pChips[sd] = pChips[sd] || []).push(ev);
       }
@@ -1866,7 +1866,10 @@ function buildGrid() {
 
       if (ev.endDate && ev.endDate !== ev.startDate) {
         const bs = (sm === m && sy === curYear) ? sd : 1;
-        const be = (em === m && ey === curYear) ? ed : dim;
+        // An event that carries on past this month runs to the end of the row —
+        // column 31, not day `dim` — so a span crossing a 30-day month reads as
+        // one unbroken block instead of breaking over the placeholder cell.
+        const be = (em === m && ey === curYear) ? ed : 31;
         // The block is drawn in every month it covers, so the real span stays
         // visible; only the dominant month carries the title.
         bars.push({ ...ev, s: bs, e: be, showLabel: barMonth.get(ev) === m });
