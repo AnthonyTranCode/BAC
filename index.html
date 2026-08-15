@@ -1733,6 +1733,11 @@ function renderCalendar() {
   // tab, which would leave the calendar unscaled until the tab got focus.
   if (fitMode) fitToWindow();
 
+  // Re-check after the fit: changing the zoom shifts sub-pixel rounding of the
+  // measurements above, which can leave a busy cell a few pixels short on the
+  // very first paint.
+  growCellsToFitChips();
+
   requestAnimationFrame(fitChips);   // font-only; safe to defer
 }
 
