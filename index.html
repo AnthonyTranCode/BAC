@@ -752,6 +752,28 @@
     }
     .hol-del-btn:hover { color: var(--destructive); background: var(--accent); }
 
+    /* ── Repeat control ────────────────────────────────────── */
+    .repeat-row {
+      display: flex; align-items: flex-start; gap: 9px;
+      cursor: pointer; user-select: none;
+      font-size: 13px; color: var(--foreground);
+    }
+    .repeat-row input {
+      width: 15px; height: 15px; margin-top: 1px;
+      accent-color: var(--primary); cursor: pointer; flex-shrink: 0;
+    }
+    .repeat-hint {
+      display: block; font-size: 11px;
+      color: var(--muted-foreground); margin-top: 2px;
+    }
+    .series-note {
+      font-size: 12px; color: var(--muted-foreground);
+      background: var(--secondary);
+      border-radius: var(--radius-md);
+      padding: 8px 10px; margin-top: 12px;
+    }
+    .series-note.hidden { display: none; }
+
     /* ── Auth gate ─────────────────────────────────────────── */
     #auth-gate {
       position: fixed; inset: 0; z-index: 100;
@@ -1049,6 +1071,18 @@
 
     <div id="date-err" class="err-msg hidden">End date must be on or after start date.</div>
 
+    <div class="form-row">
+      <label class="repeat-row" for="f-repeat">
+        <input type="checkbox" id="f-repeat">
+        <span>
+          Repeat every year
+          <span class="repeat-hint">Shows on the same date in all later years</span>
+        </span>
+      </label>
+    </div>
+
+    <div id="series-note" class="series-note hidden"></div>
+
     <div class="modal-actions">
       <button class="btn-save" id="btn-save">Save event</button>
       <button class="btn-del hidden" id="btn-del">Delete</button>
@@ -1079,6 +1113,7 @@ let curYear    = 2026;
 let curCountry = 'CA';
 let allEvents  = {};
 let editId     = null;
+let editFrom   = null;   // origin year, when editing a projected repeat occurrence
 let curZoom    = 1.0;
 
 // ── Utilities ────────────────────────────────────────────────
@@ -1177,6 +1212,52 @@ function getHolidays(year, country) {
   return list;
 }
 
+// ── Yearly repeats ───────────────────────────────────────────
+// A repeating event is stored ONCE, in the year it was created, and projected
+// into later years at render time. Nothing is duplicated on disk, so editing
+// or deleting the series can never leave orphaned copies behind.
+
+// Same month/day in another year. Feb 29 lands on Feb 28 in common years.
+function shiftDateToYear(dateStr, targetYear) {
+  const { month, day } = parseDate(dateStr);
+  return padDate(targetYear, month, Math.min(day, daysInMonth(targetYear, month)));
+}
+
+// One occurrence of `ev` in `targetYear`, tagged with the year it came from.
+function projectOccurrence(ev, targetYear) {
+  const originYear = parseDate(ev.startDate).year;
+  const startDate  = shiftDateToYear(ev.startDate, targetYear);
+
+  let endDate = null;
+  if (ev.endDate) {
+    // Preserve a span that crosses New Year (e.g. Dec 28 → Jan 3).
+    const endYear = targetYear + (parseDate(ev.endDate).year - originYear);
+    endDate = shiftDateToYear(ev.endDate, endYear);
+  }
+  return { ...ev, startDate, endDate, _from: originYear };
+}
+
+// Everything that should be drawn for `y`: events stored in that year, plus
+// projected occurrences of yearly repeats created in any earlier year.
+function eventsForYear(y) {
+  const out = (allEvents[y] || []).slice();
+  for (const key of Object.keys(allEvents)) {
+    const oy = +key;
+    if (oy >= y) continue;                       // repeats only run forward
+    for (const ev of allEvents[oy] || []) {
+      if (ev.repeat === 'yearly') out.push(projectOccurrence(ev, y));
+    }
+  }
+  return out;
+}
+
+// Resolve a possibly-projected event back to the stored original.
+function seriesOrigin(ev) {
+  if (ev._from == null) return { year: parseDate(ev.startDate).year, ev };
+  const stored = (allEvents[ev._from] || []).find(x => x.id === ev.id);
+  return { year: ev._from, ev: stored || null };
+}
+
 // ── LocalStorage ─────────────────────────────────────────────
 function lsKey(y) { return `bac-planner-${y}`; }
 
@@ -1222,7 +1303,7 @@ function renderCalendar() {
     (hMap[h.date] = hMap[h.date] || []).push(h.name);
   }
 
-  const uEvts = allEvents[curYear] || [];
+  const uEvts = eventsForYear(curYear);   // stored events + projected yearly repeats
   const today = todayStr();
 
   // Pre-scan all months to find the uniform cell height needed to fit the busiest day
@@ -1487,7 +1568,8 @@ function fitChips() {
 
 // ── Modal ────────────────────────────────────────────────────
 function openModal(dateStr, ev) {
-  editId = ev ? ev.id : null;
+  editId   = ev ? ev.id : null;
+  editFrom = ev?._from ?? null;      // set when editing a projected occurrence
 
   const { year, month, day } = parseDate(dateStr);
   document.getElementById('modal-ttl').textContent = ev ? 'Edit event' : 'Add event';
@@ -1498,7 +1580,19 @@ function openModal(dateStr, ev) {
   document.getElementById('f-cat').value   = ev?.category || 'adventures';
   document.getElementById('f-start').value = ev?.startDate || dateStr;
   document.getElementById('f-end').value   = ev?.endDate   || '';
+  document.getElementById('f-repeat').checked = ev?.repeat === 'yearly';
 
+  // Editing any occurrence edits the whole series — say so plainly.
+  const note = document.getElementById('series-note');
+  if (editFrom != null) {
+    note.textContent = `This repeats every year since ${editFrom}. Changes apply to every year.`;
+    note.classList.remove('hidden');
+  } else {
+    note.classList.add('hidden');
+  }
+
+  document.getElementById('btn-del').textContent =
+    (ev?.repeat === 'yearly') ? 'Delete series' : 'Delete';
   document.getElementById('btn-del').classList.toggle('hidden', !ev);
   document.getElementById('title-err').classList.add('hidden');
   document.getElementById('date-err').classList.add('hidden');
@@ -1508,7 +1602,8 @@ function openModal(dateStr, ev) {
 
 function closeModal() {
   document.getElementById('modal-bg').classList.add('hidden');
-  editId = null;
+  editId   = null;
+  editFrom = null;
 }
 
 function saveEvent() {
@@ -1534,31 +1629,50 @@ function saveEvent() {
   }
   if (!ok) return;
 
-  const { year } = parseDate(start);
+  const repeat = document.getElementById('f-repeat').checked ? 'yearly' : 'none';
+
+  // Editing a projected occurrence writes back to the year the series is
+  // stored in, so the same dates keep their meaning for every occurrence.
+  let year      = parseDate(start).year;
+  let startDate = start;
+  let endDate   = end;
+  if (editFrom != null) {
+    const span = end ? parseDate(end).year - parseDate(start).year : 0;
+    year      = editFrom;
+    startDate = shiftDateToYear(start, editFrom);
+    endDate   = end ? shiftDateToYear(end, editFrom + span) : null;
+  }
+
   if (!allEvents[year]) allEvents[year] = [];
+
+  const record = { id: editId || uid(), title, category: cat,
+                   startDate, endDate, emoji, repeat };
 
   if (editId) {
     const idx = allEvents[year].findIndex(e => e.id === editId);
-    if (idx >= 0)
-      allEvents[year][idx] = { id: editId, title, category: cat, startDate: start, endDate: end, emoji };
+    if (idx >= 0) allEvents[year][idx] = record;
+    else          allEvents[year].push(record);
   } else {
-    allEvents[year].push({ id: uid(), title, category: cat, startDate: start, endDate: end, emoji });
+    allEvents[year].push(record);
   }
 
   persist(year);
   closeModal();
-  if (year === curYear) renderCalendar();
+  // A repeat change alters later years too, so always redraw.
+  renderCalendar();
 }
 
 function deleteEvent() {
   if (!editId) return;
   const start = document.getElementById('f-start').value;
   if (!start) return;
-  const { year } = parseDate(start);
+  // Deleting any occurrence of a repeat removes the stored original, and with
+  // it every projected year.
+  const year = editFrom != null ? editFrom : parseDate(start).year;
   allEvents[year] = (allEvents[year] || []).filter(e => e.id !== editId);
   persist(year);
   closeModal();
-  if (year === curYear) renderCalendar();
+  renderCalendar();
 }
 
 // ── Export PNG ───────────────────────────────────────────────
@@ -1687,6 +1801,14 @@ function onDragEnd(e) {
     if (dateInt(newStart) > dateInt(newEnd)) newStart = newEnd;
   }
 
+  // Dragging a projected occurrence retargets the stored original, so the
+  // whole series moves instead of forking a copy into the year on screen.
+  if (ev._from != null) {
+    moveSeriesTo(ev, newStart, newEnd);
+    renderCalendar();
+    return;
+  }
+
   const origYear = parseDate(ev.startDate).year;
   const newYear  = parseDate(newStart).year;
   allEvents[origYear] = (allEvents[origYear] || []).filter(x => x.id !== ev.id);
@@ -1699,6 +1821,21 @@ function onDragEnd(e) {
   });
   persist(newYear);
   renderCalendar();
+}
+
+// Re-anchor a repeating series onto new dates, expressed in whatever year the
+// user happened to be dragging in.
+function moveSeriesTo(ev, newStart, newEnd) {
+  const oy   = ev._from;
+  const list = allEvents[oy] || [];
+  const idx  = list.findIndex(x => x.id === ev.id);
+  if (idx < 0) return;
+
+  const span = newEnd ? parseDate(newEnd).year - parseDate(newStart).year : 0;
+  const s    = shiftDateToYear(newStart, oy);
+  const e    = newEnd ? shiftDateToYear(newEnd, oy + span) : s;
+  list[idx]  = { ...list[idx], startDate: s, endDate: s === e ? null : e };
+  persist(oy);
 }
 
 // ── Chip drag-to-move ────────────────────────────────────────
@@ -1787,6 +1924,12 @@ function onChipDragEnd(e) {
   const targetDate = lastTarget?.dataset?.date;
   if (!targetDate || targetDate === ev.startDate) { renderCalendar(); return; }
 
+  if (ev._from != null) {          // moving one occurrence moves the series
+    moveSeriesTo(ev, targetDate, null);
+    renderCalendar();
+    return;
+  }
+
   const origYear = parseDate(ev.startDate).year;
   const newYear  = parseDate(targetDate).year;
   allEvents[origYear] = (allEvents[origYear] || []).filter(x => x.id !== ev.id);
@@ -1868,6 +2011,12 @@ function onChipResizeEnd(e) {
 
   const targetDate = lastTarget?.dataset?.date;
   if (!targetDate || targetDate === startDate) return;
+
+  if (ev._from != null) {          // extending one occurrence extends the series
+    moveSeriesTo(ev, startDate, targetDate);
+    renderCalendar();
+    return;
+  }
 
   const year = parseDate(startDate).year;
   const arr  = allEvents[year] || [];
@@ -2316,11 +2465,14 @@ const _dirtyYears = new Set();
 let _dirtyProfile = false;
 let _syncTimer    = null;
 let _syncing      = false;
+let _syncFails    = 0;
+const SYNC_MAX_RETRIES = 5;
 
 function queueSync({ year = null, profile = false } = {}) {
   if (!currentUser) return;               // not signed in yet — local only
   if (year != null) _dirtyYears.add(year);
   if (profile)      _dirtyProfile = true;
+  _syncFails = 0;                         // a fresh edit deserves a fresh attempt
   setSyncStatus('pending');
   clearTimeout(_syncTimer);
   _syncTimer = setTimeout(flushSync, 800); // coalesce rapid edits (e.g. dragging)
@@ -2365,18 +2517,29 @@ async function flushSync() {
     const failed = (await Promise.all(jobs)).find(r => r.error);
     if (failed) throw failed.error;
 
+    _syncFails = 0;
     setSyncStatus('saved');
   } catch (err) {
     console.error('[sync] save failed:', err);
-    // Put the work back on the queue and retry with a longer delay.
-    years.forEach(y => _dirtyYears.add(y));
-    if (doProfile) _dirtyProfile = true;
+    _syncFails++;
+    if (_syncFails <= SYNC_MAX_RETRIES) {
+      // Transient (offline, timeout): put the work back and try again.
+      years.forEach(y => _dirtyYears.add(y));
+      if (doProfile) _dirtyProfile = true;
+    } else {
+      // Permanent (revoked account, rejected row): retrying forever would just
+      // hammer the server. Stop, and keep the work safe in localStorage — the
+      // next edit resets the counter and tries again.
+      console.warn('[sync] giving up after', SYNC_MAX_RETRIES, 'retries; data kept locally');
+    }
     setSyncStatus('error');
   } finally {
     _syncing = false;
     if (_dirtyYears.size || _dirtyProfile) {
       clearTimeout(_syncTimer);
-      _syncTimer = setTimeout(flushSync, 3000);
+      // Back off as failures accumulate: 3s, 6s, 12s… capped at 30s.
+      const delay = _syncFails ? Math.min(30000, 3000 * 2 ** (_syncFails - 1)) : 800;
+      _syncTimer = setTimeout(flushSync, delay);
     }
   }
 }
