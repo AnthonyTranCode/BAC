@@ -1967,7 +1967,9 @@ function onDragMove(e) {
   const { mode, barEl, origLeft, origWidth, startX } = dragState;
   const deltaX = e.clientX - startX;
   if (Math.abs(deltaX) > 4) dragState.moved = true;
-  const deltaDays = Math.round(deltaX / CELL_W);
+  // deltaX is screen pixels, but a column is CELL_W in the grid's own
+  // coordinates — which the page-scaler's CSS zoom scales on screen.
+  const deltaDays = Math.round(deltaX / (CELL_W * curZoom));
 
   if (mode === 'move') {
     barEl.style.transform = `translateX(${deltaDays * CELL_W}px)`;
@@ -1989,7 +1991,7 @@ function onDragEnd(e) {
 
   const { mode, ev, origStart, origEnd, moved, barEl } = dragState;
   const deltaX    = e.clientX - dragState.startX;
-  const deltaDays = Math.round(deltaX / CELL_W);
+  const deltaDays = Math.round(deltaX / (CELL_W * curZoom));
   dragState = null;
 
   barEl.classList.remove('dragging');
