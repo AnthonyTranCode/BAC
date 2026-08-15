@@ -1468,8 +1468,8 @@ function renderCalendar() {
   const today = todayStr();
 
   // Pre-scan all months to find the uniform cell height needed to fit the busiest day
-  const MIN_CHIP_H = 18;  // minimum readable chip height in px
-  let uniformCellH = 40;  // absolute floor
+  const MIN_CHIP_H = 20;  // minimum readable chip height in px
+  let uniformCellH = 64;  // absolute floor — keeps empty months from feeling cramped
   for (let pm = 0; pm < 12; pm++) {
     const pdim   = daysInMonth(curYear, pm);
     const pmsInt = dateInt(padDate(curYear, pm, 1));
