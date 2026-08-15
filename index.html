@@ -1724,6 +1724,7 @@ function renderCalendar() {
     row.appendChild(area);
     grid.appendChild(row);
   }
+  growCellsToFitChips();
   applySpotlight();   // freshly drawn bars must respect the active filter
 
   // Row heights depend on how many event tracks a year needs, so the fitted
@@ -1733,6 +1734,29 @@ function renderCalendar() {
   if (fitMode) fitToWindow();
 
   requestAnimationFrame(fitChips);   // font-only; safe to defer
+}
+
+// The pre-scan budgets MIN_CHIP_H per chip, but a title that wraps to two lines
+// is line-height (1.2) × 2 + padding ≈ 23px, not 20 — and the line count can't
+// be known before layout. The shortfall shows up as content overflowing the
+// day cell, which clips it (.day-cell is overflow:hidden). So measure the real
+// overflow after rendering and grow every cell by the worst case, which keeps
+// rows uniform and costs no re-render.
+function growCellsToFitChips() {
+  const cells = document.querySelectorAll('.day-cell');
+
+  // Growing can change how text wraps, so re-measure; converges in 1–2 passes.
+  for (let pass = 0; pass < 3; pass++) {
+    let worst = 0;
+    cells.forEach(cell => {
+      const over = cell.scrollHeight - cell.clientHeight;
+      if (over > worst) worst = over;
+    });
+    if (worst <= 0) return;
+    cells.forEach(cell => {
+      cell.style.height = (parseFloat(cell.style.height) + worst) + 'px';
+    });
+  }
 }
 
 function fitChips() {
