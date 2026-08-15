@@ -771,6 +771,15 @@
     }
     .emoji-none.hidden { display: none; }
 
+    .emoji-tip {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid var(--border);
+      font: var(--weight-normal) 12px/1.45 var(--font);
+      color: var(--muted-foreground);
+    }
+    .emoji-tip b { font-weight: var(--weight-medium); color: var(--foreground); }
+
     .modal-actions { display: flex; gap: 8px; margin-top: 18px; }
 
     .btn-save {
@@ -870,6 +879,24 @@
       border-bottom: 1px solid var(--border);
     }
     .cat-row:last-child { border-bottom: none; }
+
+    /* Reordering: the row is only draggable while the grip is held, so the
+       name field keeps its normal text selection. */
+    .cat-grip {
+      background: none; border: none; padding: 4px 2px;
+      color: var(--muted-foreground);
+      cursor: grab;
+      flex-shrink: 0; line-height: 0;
+      display: flex; align-items: center;
+      border-radius: var(--radius-md);
+      transition: color var(--duration, 200ms) var(--ease-standard),
+                  background var(--duration, 200ms) var(--ease-standard);
+    }
+    .cat-grip:hover { color: var(--foreground); background: var(--accent); }
+    .cat-grip:active { cursor: grabbing; }
+    .cat-grip:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
+
+    .cat-row.dragging { opacity: .4; }
 
     .cat-color-inp {
       width: 36px; height: 36px;
@@ -1493,7 +1520,7 @@
     <div class="modal-head">
       <div>
         <div class="modal-ttl">Manage categories</div>
-        <div class="modal-sub">Rename, recolor, or remove your categories</div>
+        <div class="modal-sub">Rename, recolor, reorder, or remove your categories. The order here is the order of the legend.</div>
       </div>
       <button class="modal-close" id="cat-mgr-close" title="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
     </div>
@@ -1534,6 +1561,10 @@
           </div>
           <div id="emoji-grid" class="emoji-grid"><!-- built by renderEmojiGrid() --></div>
           <div id="emoji-empty" class="emoji-none hidden">Nothing matches that.</div>
+          <div class="emoji-tip">
+            Not here? Put any emoji in the box above — right-click it for
+            <b>Emoji&nbsp;&amp;&nbsp;Symbols</b>, or press <b>⌃⌘Space</b>.
+          </div>
         </div>
       </div>
       <div class="fld">
@@ -2623,10 +2654,11 @@ function renderEmojiGrid(query) {
     shown += items.length;
   };
 
-  // Pasting an emoji offers that one, even when it isn't in the list.
+  // An emoji in the search box is offered as a choice of its own. It goes in
+  // whether or not the list already carries it — keyword matching can't match
+  // an emoji, so without this, searching one would come back empty.
   const pasted = normalizeEmoji(query);
-  if (pasted && !EMOJI_SETS.some(s => s.items.some(([ch]) => ch === pasted)))
-    section('Pasted', [[pasted, 'pasted emoji']]);
+  if (pasted) section('Your emoji', [[pasted, 'use this emoji']]);
 
   for (const set of EMOJI_SETS)
     section(set.label, q ? set.items.filter(([, kw]) => kw.includes(q)) : set.items);
@@ -3300,6 +3332,17 @@ function closeCatManager() {
 
 const TRASH_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`;
 
+const GRIP_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>`;
+
+// Move a category and keep the keyboard on the grip that moved, so repeated
+// arrow presses walk an item up or down the list.
+function moveStagedCat(from, to) {
+  if (to < 0 || to >= stagedCats.length || from === to) return;
+  stagedCats.splice(to, 0, stagedCats.splice(from, 1)[0]);
+  renderCatManager();
+  document.querySelector(`#cat-list .cat-row[data-idx="${to}"] .cat-grip`)?.focus();
+}
+
 function renderCatManager() {
   const list = document.getElementById('cat-list');
   if (!list) return;
@@ -3307,7 +3350,9 @@ function renderCatManager() {
     const solidActive  = cat.style === 'solid'  ? ' active' : '';
     const dashedActive = cat.style === 'dashed' ? ' active' : '';
     const canDel = stagedCats.length > 1 ? '' : ' disabled';
-    return `<div class="cat-row" data-idx="${i}">
+    return `<div class="cat-row" data-idx="${i}" data-id="${cat.id}">
+      <button class="cat-grip" data-idx="${i}" title="Drag to reorder, or use the arrow keys"
+              aria-label="Reorder ${cat.label}, position ${i + 1} of ${stagedCats.length}">${GRIP_ICON}</button>
       <input type="color" class="cat-color-inp" value="${cat.color}" data-idx="${i}" title="Pick color">
       <input type="text"  class="cat-name-inp"  value="${cat.label}" data-idx="${i}" maxlength="40" placeholder="Category name">
       <div class="cat-style-grp">
@@ -3317,6 +3362,8 @@ function renderCatManager() {
       <button class="cat-del-btn" data-idx="${i}"${canDel} title="Delete category">${TRASH_ICON}</button>
     </div>`;
   }).join('');
+
+  wireCatReorder(list);
 
   // Bind events on the freshly-rendered rows
   list.querySelectorAll('.cat-color-inp').forEach(inp => {
@@ -3338,6 +3385,69 @@ function renderCatManager() {
       if (stagedCats.length <= 1) return;
       stagedCats.splice(idx, 1);
       renderCatManager();
+    });
+  });
+}
+
+// Reordering runs on plain mouse events, the same way event bars are dragged
+// on the grid — HTML5 drag-and-drop brings its own drag image, needs a
+// dataTransfer payload for Firefox, and does nothing at all on touch.
+//
+// The drag shuffles DOM nodes and leaves stagedCats alone; on mouseup the
+// array is rebuilt from each row's data-id and re-rendered, which is also what
+// resettles the data-idx the field handlers read.
+function wireCatReorder(list) {
+  let drag = null;   // { row, startY, moved }
+
+  const rowUnder = y => [...list.querySelectorAll('.cat-row')].find(r => {
+    const b = r.getBoundingClientRect();
+    return y >= b.top && y <= b.bottom;
+  });
+
+  const onMove = e => {
+    if (!drag) return;
+    // A few pixels of slack so a plain click on the grip isn't a drag.
+    if (!drag.moved && Math.abs(e.clientY - drag.startY) < 4) return;
+    if (!drag.moved) { drag.moved = true; drag.row.classList.add('dragging'); }
+
+    const over = rowUnder(e.clientY);
+    if (!over || over === drag.row) return;
+    const box = over.getBoundingClientRect();
+    // Past the midpoint, the dragged row belongs below this one.
+    list.insertBefore(drag.row, e.clientY > box.top + box.height / 2 ? over.nextSibling : over);
+  };
+
+  const onUp = () => {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup',   onUp);
+    document.body.style.userSelect = '';
+    if (!drag) return;
+
+    const { row, moved } = drag;
+    drag = null;
+    row.classList.remove('dragging');
+    if (!moved) return;
+
+    const order = [...list.querySelectorAll('.cat-row')].map(r => r.dataset.id);
+    stagedCats.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+    renderCatManager();
+  };
+
+  list.querySelectorAll('.cat-grip').forEach(grip => {
+    grip.addEventListener('mousedown', e => {
+      e.preventDefault();                    // no text selection while dragging
+      drag = { row: grip.closest('.cat-row'), startY: e.clientY, moved: false };
+      document.body.style.userSelect = 'none';
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup',   onUp);
+    });
+
+    // Dragging is mouse-only, so the grip doubles as a keyboard control.
+    grip.addEventListener('keydown', e => {
+      const step = { ArrowUp: -1, ArrowDown: 1 }[e.key];
+      if (!step) return;
+      e.preventDefault();
+      moveStagedCat(+grip.dataset.idx, +grip.dataset.idx + step);
     });
   });
 }
