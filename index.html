@@ -1465,7 +1465,13 @@ function renderCalendar() {
     row.appendChild(area);
     grid.appendChild(row);
   }
-  requestAnimationFrame(fitChips);
+  // Row heights depend on how many event tracks a year needs, so the fitted
+  // scale is recomputed on every render. Done synchronously — the grid's
+  // geometry is final here, and a frame callback never fires in a background
+  // tab, which would leave the calendar unscaled until the tab got focus.
+  if (fitMode) fitToWindow();
+
+  requestAnimationFrame(fitChips);   // font-only; safe to defer
 }
 
 function fitChips() {
@@ -2171,21 +2177,77 @@ document.addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey) {
     if (e.key === '=' || e.key === '+') { e.preventDefault(); setZoom(curZoom + ZOOM_STEP); }
     if (e.key === '-' || e.key === '_') { e.preventDefault(); setZoom(curZoom - ZOOM_STEP); }
-    if (e.key === '0')                  { e.preventDefault(); setZoom(1); }
+    if (e.key === '0')                  { e.preventDefault(); fitToWindow(); }
   }
 });
 
 // ── Zoom ─────────────────────────────────────────────────────
-function setZoom(z) {
+// The calendar defaults to "fit": scaled so the whole year fills the window.
+// Any manual zoom leaves fit mode; clicking the percentage returns to it.
+let fitMode = true;
+
+function setZoom(z, { keepFit = false } = {}) {
+  if (!keepFit) fitMode = false;
   curZoom = Math.round(Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, z)) * 100) / 100;
   document.getElementById('page-scaler').style.zoom = curZoom;
-  document.getElementById('zoom-pct').textContent   = Math.round(curZoom * 100) + '%';
+  const pct = document.getElementById('zoom-pct');
+  pct.textContent = Math.round(curZoom * 100) + '%';
+  pct.title = fitMode ? 'Fitted to window (Ctrl 0)' : 'Fit to window (Ctrl 0)';
 }
+
+// Scale at which the year spans the full window width.
+//
+// Width only, deliberately: the grid is far wider than it is tall, so fitting
+// both axes would let height win and leave a third of the window empty to the
+// right. A year planner is read across, so width is the axis worth filling —
+// if the content is taller than the window, it scrolls vertically.
+function computeFitZoom() {
+  const outer = document.getElementById('page-outer');
+  const grid  = document.getElementById('cal-grid');
+  if (!outer || !grid || !grid.firstChild) return curZoom;
+
+  // Derive the intrinsic width from the grid's own geometry rather than
+  // measuring the element: .cal-grid stretches to its container, so its
+  // rendered width always equals the viewport and the ratio comes out 1.
+  const root   = getComputedStyle(document.documentElement);
+  const cellW  = parseFloat(root.getPropertyValue('--cell-w'));
+  const labelW = parseFloat(root.getPropertyValue('--label-w'));
+
+  const wrap = getComputedStyle(document.getElementById('cal-wrap'));
+  const padX = parseFloat(wrap.paddingLeft) + parseFloat(wrap.paddingRight);
+
+  const natW = labelW + 31 * cellW + padX;   // 31 = widest month
+  // A zero/NaN measurement (mid-relayout, or a hidden tab) would otherwise
+  // clamp the zoom to its 30% floor and stick.
+  if (!natW || !outer.clientWidth) return curZoom;
+  return outer.clientWidth / natW;
+}
+
+function fitToWindow() {
+  fitMode = true;
+  // Applying a fit can push the content tall enough to add a vertical
+  // scrollbar, which takes ~15px off the available width and makes the zoom
+  // we just set overflow horizontally. Settle it in at most two passes, and
+  // floor rather than round so the rounding itself can never overshoot.
+  for (let pass = 0; pass < 2; pass++) {
+    const z = Math.floor(computeFitZoom() * 100) / 100;
+    if (z === curZoom) break;
+    setZoom(z, { keepFit: true });
+  }
+}
+
+// Re-fit when the window changes size, but only while still in fit mode.
+let _fitTimer = null;
+window.addEventListener('resize', () => {
+  if (!fitMode) return;
+  clearTimeout(_fitTimer);
+  _fitTimer = setTimeout(fitToWindow, 120);
+});
 
 // Zoom bar buttons
 document.getElementById('zoom-in') .addEventListener('click', () => setZoom(curZoom + ZOOM_STEP));
 document.getElementById('zoom-out').addEventListener('click', () => setZoom(curZoom - ZOOM_STEP));
-document.getElementById('zoom-pct').addEventListener('click', () => setZoom(1));
+document.getElementById('zoom-pct').addEventListener('click', fitToWindow);
 
 // Ctrl/Cmd + scroll wheel
 window.addEventListener('wheel', e => {
@@ -2556,7 +2618,6 @@ document.getElementById('signout-btn').addEventListener('click', async () => {
 });
 
 // ── Boot ─────────────────────────────────────────────────────
-setZoom(1);
 
 let _booted     = false;
 let _booting    = false;   // guards against overlapping hydrations from duplicate auth events
@@ -2595,10 +2656,12 @@ async function startApp(user) {
   curYear = (savedY && +savedY >= YEAR_MIN && +savedY <= YEAR_MAX) ? +savedY : 2026;
 
   updateYearNav();
-  renderCalendar();
   setSyncStatus('saved');
 
+  // Hide the overlay first so renderCalendar's fit measures the real viewport.
   $gate.classList.add('hidden');
+  renderCalendar();
+
   _booted = true;
 }
 
