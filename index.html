@@ -676,8 +676,86 @@
     .fld input::placeholder { color: var(--muted-foreground); }
     .fld input:focus, .fld select:focus { border-color: var(--ring); box-shadow: 0 0 0 2px var(--popover), 0 0 0 4px var(--ring); }
 
-    .fld-emoji { flex: none; }
+    .fld-emoji { flex: none; position: relative; }
     .emoji-inp { font-size: 20px; text-align: center; width: 64px !important; flex: none; }
+
+    /* 37px matches a .fld input: 9px padding twice + 14px/1.2 text + 2px border */
+    .emoji-trigger {
+      height: 37px; padding: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--background);
+      border: 1px solid var(--input);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: border-color var(--duration, 200ms) var(--ease-standard),
+                  box-shadow var(--duration, 200ms) var(--ease-standard);
+    }
+    .emoji-trigger:hover { border-color: var(--ring); }
+    .emoji-trigger:focus-visible {
+      outline: none; border-color: var(--ring);
+      box-shadow: 0 0 0 2px var(--popover), 0 0 0 4px var(--ring);
+    }
+    .emoji-face { font-size: 20px; line-height: 1; }
+    .emoji-face.is-empty { font-size: 17px; color: var(--muted-foreground); }
+
+    /* Anchored under the 64px trigger, but as wide as the modal's content. */
+    .emoji-pop {
+      position: absolute; top: calc(100% + 6px); left: 0;
+      width: 400px; max-width: calc(100vw - 64px);
+      z-index: 20;
+      padding: 10px;
+      background: var(--popover);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+    }
+    .emoji-pop.hidden { display: none; }
+
+    .emoji-pop-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+    .emoji-pop-head input {
+      flex: 1; min-width: 0;
+      padding: 7px 10px;
+      background: var(--background);
+      border: 1px solid var(--input);
+      border-radius: var(--radius-md);
+      font: var(--weight-normal) 13px/1.2 var(--font);
+      color: var(--foreground);
+      outline: none;
+    }
+    .emoji-pop-head input::placeholder { color: var(--muted-foreground); }
+    .emoji-pop-head input:focus { border-color: var(--ring); }
+
+    /* Shrinks on short screens so the panel can't outgrow the modal it sits in. */
+    .emoji-grid { max-height: min(214px, 38vh); overflow-y: auto; }
+
+    .emoji-sect {
+      margin: 10px 2px 4px;
+      font: var(--weight-medium) 11px/1 var(--font);
+      color: var(--muted-foreground);
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .emoji-sect:first-child { margin-top: 2px; }
+
+    .emoji-row { display: grid; grid-template-columns: repeat(9, 1fr); gap: 2px; }
+
+    .emoji-opt {
+      aspect-ratio: 1;
+      font-size: 19px; line-height: 1;
+      background: none; border: none; border-radius: var(--radius-md);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background var(--duration-75, 75ms) var(--ease-standard);
+    }
+    .emoji-opt:hover { background: var(--accent); }
+    .emoji-opt.sel   { background: var(--muted); }
+    .emoji-opt:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
+
+    .emoji-none {
+      padding: 14px 4px; text-align: center;
+      font: var(--weight-normal) 13px/1.3 var(--font);
+      color: var(--muted-foreground);
+    }
+    .emoji-none.hidden { display: none; }
 
     .modal-actions { display: flex; gap: 8px; margin-top: 18px; }
 
@@ -986,13 +1064,6 @@
       font-weight: var(--weight-normal);
       color: var(--muted-foreground);
       margin-left: 6px;
-    }
-
-    /* Visible to screen readers only — the emoji box is too narrow for a hint. */
-    .sr-only {
-      position: absolute; width: 1px; height: 1px;
-      padding: 0; margin: -1px; overflow: hidden;
-      clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
     }
 
     .dp {
@@ -1433,11 +1504,23 @@
 
     <div class="form-row">
       <div class="fld fld-emoji">
-        <label for="f-emoji">Emoji</label>
-        <input type="text" id="f-emoji" class="emoji-inp" maxlength="16"
-               autocomplete="off" aria-describedby="emoji-hint"
-               title="Optional — paste an emoji, or press Ctrl+Cmd+Space for the emoji picker">
-        <span id="emoji-hint" class="sr-only">Optional single emoji shown before the title</span>
+        <label for="f-emoji-btn">Emoji</label>
+        <input type="hidden" id="f-emoji">
+        <button type="button" id="f-emoji-btn" class="emoji-inp emoji-trigger"
+                aria-haspopup="dialog" aria-expanded="false"
+                title="Optional — pick an emoji to show before the title">
+          <span id="f-emoji-face" class="emoji-face is-empty">＋</span>
+        </button>
+
+        <div id="emoji-pop" class="emoji-pop hidden" role="dialog" aria-label="Choose an emoji">
+          <div class="emoji-pop-head">
+            <input type="text" id="emoji-search" autocomplete="off"
+                   placeholder="Search, or paste any emoji">
+            <button type="button" class="dp-clear" id="emoji-clear">Remove</button>
+          </div>
+          <div id="emoji-grid" class="emoji-grid"><!-- built by renderEmojiGrid() --></div>
+          <div id="emoji-empty" class="emoji-none hidden">Nothing matches that.</div>
+        </div>
       </div>
       <div class="fld">
         <label for="f-title">Title</label>
@@ -2359,8 +2442,9 @@ function openModal(dateStr, ev) {
     `${MONTH_LG[month]} ${day}, ${year}`;
 
   document.getElementById('f-title').value = ev?.title    || '';
-  document.getElementById('f-emoji').value = ev?.emoji    || '';
   document.getElementById('f-cat').value   = ev?.category || 'adventures';
+  closeEmojiPop(false);
+  setEmoji(ev?.emoji || null);
   dpOpen(ev?.startDate || dateStr, ev?.endDate || null);
   document.getElementById('f-repeat').checked = ev?.repeat === 'yearly';
 
@@ -2383,10 +2467,87 @@ function openModal(dateStr, ev) {
 }
 
 function closeModal() {
+  closeEmojiPop(false);
   document.getElementById('modal-bg').classList.add('hidden');
   editId   = null;
   editFrom = null;
 }
+
+// ── Emoji picker ─────────────────────────────────────────────
+// A short, planner-shaped list rather than every emoji there is — the search
+// box takes a pasted one for anything not here. Keywords are matched as
+// substrings, so "fl" finds both "flight" and "flowers".
+const EMOJI_SETS = [
+  { label: 'Travel', items: [
+    ['✈️','flight plane fly travel'], ['🧳','luggage suitcase packing trip'],
+    ['🗺️','map route trip'], ['🏖️','beach sand holiday sun'],
+    ['🏝️','island tropical holiday'], ['⛰️','mountain hike peak'],
+    ['🏕️','camping tent outdoors'], ['🚗','car road drive trip'],
+    ['🚆','train rail commute'], ['🚢','ship cruise boat sail'],
+    ['🎿','ski snow slopes winter'], ['🏂','snowboard snow winter'],
+    ['🌍','world earth global travel'], ['🛫','takeoff departure flight'],
+    ['🏨','hotel stay accommodation'], ['🎒','backpack hiking trek'],
+    ['🚐','van campervan roadtrip'], ['🗽','city sightseeing landmark'],
+  ]},
+  { label: 'Occasions', items: [
+    ['🎉','party celebrate confetti'], ['🎂','birthday cake bday'],
+    ['🥳','celebrate party face'], ['🎁','gift present gifts'],
+    ['🍾','champagne toast celebrate'], ['🥂','cheers toast drinks'],
+    ['💍','engagement ring proposal'], ['👰','wedding marriage bride'],
+    ['🎆','fireworks new year celebrate'], ['🎈','balloon party'],
+    ['❤️','love heart anniversary'], ['💐','flowers bouquet gift'],
+    ['🕯️','candle memorial remembrance'], ['🎄','christmas tree holiday'],
+    ['🎃','halloween pumpkin october'], ['🦃','thanksgiving turkey'],
+    ['🧧','lunar new year red envelope'], ['🪩','night out dancing party'],
+  ]},
+  { label: 'Food & drink', items: [
+    ['🍽️','dinner meal restaurant reservation'], ['🍕','pizza food'],
+    ['🍣','sushi food japanese'], ['☕','coffee catch up cafe'],
+    ['🍺','beer pub drinks'], ['🍷','wine drinks tasting'],
+    ['🍰','cake dessert sweet'], ['🥘','cooking dinner food'],
+    ['🍳','brunch breakfast eggs'], ['🧁','baking cupcake treat'],
+  ]},
+  { label: 'Health & sport', items: [
+    ['🏃','run running race jog'], ['🚴','cycle bike ride'],
+    ['🏋️','gym lifting workout'], ['🧘','yoga meditate calm'],
+    ['⚽','soccer football match'], ['🏀','basketball game'],
+    ['🎾','tennis match court'], ['🏊','swim swimming pool'],
+    ['🥾','hike hiking walk trail'], ['⛳','golf round tee'],
+    ['🩺','doctor appointment checkup'], ['🦷','dentist teeth appointment'],
+    ['💊','medication prescription refill'], ['🏅','race medal finish'],
+  ]},
+  { label: 'Work & money', items: [
+    ['💼','work business meeting'], ['💻','laptop work coding'],
+    ['📈','growth results review'], ['📝','notes admin paperwork'],
+    ['🎓','graduation course study'], ['🏢','office work onsite'],
+    ['💰','money pay salary savings'], ['🤝','meeting deal networking'],
+    ['📞','call phone interview'], ['🗓️','deadline schedule date'],
+    ['🧾','tax invoice bills receipt'], ['🚀','launch release project'],
+  ]},
+  { label: 'Home & life', items: [
+    ['🏠','home house moving'], ['🔑','keys move new place'],
+    ['🚚','moving day removals van'], ['🛠️','repairs diy maintenance'],
+    ['🐶','dog pet vet'], ['🐱','cat pet vet'],
+    ['🌱','garden planting spring'], ['🎨','art painting creative class'],
+    ['🎸','music band gig practice'], ['🎬','film cinema movie'],
+    ['📚','reading book study club'], ['🎮','games gaming night'],
+    ['🧹','cleaning chores tidy'], ['👶','baby birth family'],
+  ]},
+  { label: 'Nature & weather', items: [
+    ['☀️','sun sunny summer'], ['🌧️','rain wet weather'],
+    ['❄️','snow winter cold'], ['🍁','autumn fall leaves'],
+    ['🌸','spring blossom flowers'], ['🌊','sea ocean waves surf'],
+    ['🔥','fire hot streak'], ['🌙','night evening moon'],
+    ['⭐','star special favourite'], ['🌈','rainbow pride'],
+  ]},
+  { label: 'Marks', items: [
+    ['✅','done complete tick'], ['❗','important urgent'],
+    ['❓','maybe unsure question'], ['📌','pinned fixed date'],
+    ['🔴','red mark dot'], ['🟡','yellow mark dot'],
+    ['🟢','green mark dot'], ['🔵','blue mark dot'],
+    ['⚫','black mark dot'],
+  ]},
+];
 
 // The emoji is drawn in front of the title on a bar or chip, so only one
 // actual emoji may go in — a stray letter would read as part of the title.
@@ -2400,6 +2561,81 @@ function normalizeEmoji(raw) {
   // Regional indicators are flags, U+20E3 is the keycap on 1️⃣ and friends.
   return graphemes.find(g =>
     /\p{Extended_Pictographic}|\p{Regional_Indicator}|⃣/u.test(g)) || null;
+}
+
+// #f-emoji is the hidden source of truth, the same shape as #f-start/#f-end.
+function setEmoji(ch) {
+  document.getElementById('f-emoji').value = ch || '';
+  paintEmojiFace();
+}
+
+function paintEmojiFace() {
+  const v    = document.getElementById('f-emoji').value;
+  const face = document.getElementById('f-emoji-face');
+  face.textContent = v || '＋';
+  face.classList.toggle('is-empty', !v);
+  document.getElementById('f-emoji-btn').setAttribute('aria-label',
+    v ? `Emoji ${v}, click to change` : 'Add an emoji (optional)');
+}
+
+function renderEmojiGrid(query) {
+  const grid    = document.getElementById('emoji-grid');
+  const q       = (query || '').trim().toLowerCase();
+  const current = document.getElementById('f-emoji').value;
+  grid.innerHTML = '';
+  let shown = 0;
+
+  const section = (label, items) => {
+    if (!items.length) return;
+    const head = document.createElement('div');
+    head.className = 'emoji-sect';
+    head.textContent = label;
+    grid.appendChild(head);
+
+    const row = document.createElement('div');
+    row.className = 'emoji-row';
+    for (const [ch, kw] of items) {
+      const name = kw.split(' ')[0];
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'emoji-opt' + (ch === current ? ' sel' : '');
+      b.textContent = ch;
+      b.title = name;
+      b.setAttribute('aria-label', name);
+      b.addEventListener('click', () => { setEmoji(ch); closeEmojiPop(); });
+      row.appendChild(b);
+    }
+    grid.appendChild(row);
+    shown += items.length;
+  };
+
+  // Pasting an emoji offers that one, even when it isn't in the list.
+  const pasted = normalizeEmoji(query);
+  if (pasted && !EMOJI_SETS.some(s => s.items.some(([ch]) => ch === pasted)))
+    section('Pasted', [[pasted, 'pasted emoji']]);
+
+  for (const set of EMOJI_SETS)
+    section(set.label, q ? set.items.filter(([, kw]) => kw.includes(q)) : set.items);
+
+  document.getElementById('emoji-empty').classList.toggle('hidden', shown > 0);
+}
+
+function openEmojiPop() {
+  document.getElementById('emoji-pop').classList.remove('hidden');
+  document.getElementById('f-emoji-btn').setAttribute('aria-expanded', 'true');
+  const search = document.getElementById('emoji-search');
+  search.value = '';
+  renderEmojiGrid('');
+  search.focus();
+  document.getElementById('emoji-grid').scrollTop = 0;
+}
+
+function closeEmojiPop(refocus = true) {
+  const pop = document.getElementById('emoji-pop');
+  if (pop.classList.contains('hidden')) return;
+  pop.classList.add('hidden');
+  document.getElementById('f-emoji-btn').setAttribute('aria-expanded', 'false');
+  if (refocus) document.getElementById('f-emoji-btn').focus();
 }
 
 function saveEvent() {
@@ -3150,12 +3386,53 @@ document.getElementById('modal-bg').addEventListener('click', e => {
   if (e.target === document.getElementById('modal-bg')) closeModal();
 });
 
-// Settle the emoji box as you type: keep the one emoji, drop anything else.
-// Waiting for an IME to finish keeps composed input from being eaten.
-document.getElementById('f-emoji').addEventListener('input', e => {
+// ── Emoji picker wiring ──────────────────────────────────────
+document.getElementById('f-emoji-btn').addEventListener('click', () => {
+  if (document.getElementById('emoji-pop').classList.contains('hidden')) openEmojiPop();
+  else closeEmojiPop();
+});
+
+document.getElementById('emoji-search').addEventListener('input', e => {
   if (e.isComposing) return;
-  const kept = normalizeEmoji(e.target.value);
-  if (e.target.value !== (kept || '')) e.target.value = kept || '';
+  renderEmojiGrid(e.target.value);
+});
+
+document.getElementById('emoji-clear').addEventListener('click', () => {
+  setEmoji(null);
+  closeEmojiPop();
+});
+
+// The modal listens on document for Escape (close) and Enter (save), so every
+// key the picker handles has to stop there.
+document.getElementById('emoji-pop').addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    e.stopPropagation();                       // never save the event from in here
+    // A focused option already fires its own click on Enter; only the search
+    // box needs Enter mapped onto the first result.
+    if (document.activeElement.id === 'emoji-search') {
+      e.preventDefault();
+      const first = document.querySelector('#emoji-grid .emoji-opt');
+      if (first) first.click();
+    }
+    return;
+  }
+
+  // Arrow keys walk the grid; 9 per row, matching the CSS columns.
+  const step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -9, ArrowDown: 9 }[e.key];
+  if (!step) return;
+  const opts = [...document.querySelectorAll('#emoji-grid .emoji-opt')];
+  if (!opts.length) return;
+  const here = opts.indexOf(document.activeElement);
+  if (here === -1 && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) return;  // let the caret move
+  e.preventDefault();
+  opts[Math.min(Math.max(here === -1 ? 0 : here + step, 0), opts.length - 1)].focus();
+});
+
+// A click anywhere else closes the picker without stealing focus.
+document.addEventListener('mousedown', e => {
+  if (document.getElementById('emoji-pop').classList.contains('hidden')) return;
+  if (e.target.closest('.fld-emoji')) return;
+  closeEmojiPop(false);
 });
 
 document.getElementById('hol-mgr-btn').addEventListener('click', openHolManager);
@@ -3179,7 +3456,11 @@ document.addEventListener('keydown', e => {
 
   // Modal shortcuts
   if (modalOpen) {
-    if (e.key === 'Escape') closeModal();
+    // The emoji picker sits inside the modal, so Escape dismisses that first.
+    if (e.key === 'Escape') {
+      if (document.getElementById('emoji-pop').classList.contains('hidden')) closeModal();
+      else closeEmojiPop();
+    }
     if (e.key === 'Enter' && document.activeElement.tagName !== 'BUTTON'
         && document.activeElement.tagName !== 'SELECT') saveEvent();
     return;
