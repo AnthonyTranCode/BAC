@@ -676,6 +676,7 @@
     .fld input::placeholder { color: var(--muted-foreground); }
     .fld input:focus, .fld select:focus { border-color: var(--ring); box-shadow: 0 0 0 2px var(--popover), 0 0 0 4px var(--ring); }
 
+    .fld-emoji { flex: none; }
     .emoji-inp { font-size: 20px; text-align: center; width: 64px !important; flex: none; }
 
     .modal-actions { display: flex; gap: 8px; margin-top: 18px; }
@@ -985,6 +986,13 @@
       font-weight: var(--weight-normal);
       color: var(--muted-foreground);
       margin-left: 6px;
+    }
+
+    /* Visible to screen readers only — the emoji box is too narrow for a hint. */
+    .sr-only {
+      position: absolute; width: 1px; height: 1px;
+      padding: 0; margin: -1px; overflow: hidden;
+      clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
     }
 
     .dp {
@@ -1424,8 +1432,15 @@
     </div>
 
     <div class="form-row">
+      <div class="fld fld-emoji">
+        <label for="f-emoji">Emoji</label>
+        <input type="text" id="f-emoji" class="emoji-inp" maxlength="16"
+               autocomplete="off" aria-describedby="emoji-hint"
+               title="Optional — paste an emoji, or press Ctrl+Cmd+Space for the emoji picker">
+        <span id="emoji-hint" class="sr-only">Optional single emoji shown before the title</span>
+      </div>
       <div class="fld">
-        <label>Title</label>
+        <label for="f-title">Title</label>
         <input type="text" id="f-title" placeholder="Add a title" maxlength="80">
       </div>
     </div>
@@ -1441,7 +1456,7 @@
 
     <div class="form-row">
       <div class="fld">
-        <label>Dates <span class="fld-hint">Click the first day, then the last — or drag across them</span></label>
+        <label>Dates <span class="fld-hint">Click the first day, then the last</span></label>
         <div class="dp">
           <div class="dp-head">
             <button type="button" class="dp-nav" id="dp-prev" aria-label="Previous month">
@@ -2344,6 +2359,7 @@ function openModal(dateStr, ev) {
     `${MONTH_LG[month]} ${day}, ${year}`;
 
   document.getElementById('f-title').value = ev?.title    || '';
+  document.getElementById('f-emoji').value = ev?.emoji    || '';
   document.getElementById('f-cat').value   = ev?.category || 'adventures';
   dpOpen(ev?.startDate || dateStr, ev?.endDate || null);
   document.getElementById('f-repeat').checked = ev?.repeat === 'yearly';
@@ -2372,11 +2388,25 @@ function closeModal() {
   editFrom = null;
 }
 
+// The emoji is drawn in front of the title on a bar or chip, so only one
+// actual emoji may go in — a stray letter would read as part of the title.
+// Flags and keycaps are several code points, hence grapheme segmentation.
+function normalizeEmoji(raw) {
+  const s = (raw || '').trim();
+  if (!s) return null;
+  const graphemes = Intl.Segmenter
+    ? [...new Intl.Segmenter('en', { granularity: 'grapheme' }).segment(s)].map(g => g.segment)
+    : [...s];
+  // Regional indicators are flags, U+20E3 is the keycap on 1️⃣ and friends.
+  return graphemes.find(g =>
+    /\p{Extended_Pictographic}|\p{Regional_Indicator}|⃣/u.test(g)) || null;
+}
+
 function saveEvent() {
   const title = document.getElementById('f-title').value.trim();
   const start = document.getElementById('f-start').value;
   const end   = document.getElementById('f-end').value || null;
-  const emoji = null;
+  const emoji = normalizeEmoji(document.getElementById('f-emoji').value);
   const cat   = document.getElementById('f-cat').value;
 
   let ok = true;
@@ -3118,6 +3148,14 @@ document.getElementById('modal-close').addEventListener('click', closeModal);
 
 document.getElementById('modal-bg').addEventListener('click', e => {
   if (e.target === document.getElementById('modal-bg')) closeModal();
+});
+
+// Settle the emoji box as you type: keep the one emoji, drop anything else.
+// Waiting for an IME to finish keeps composed input from being eaten.
+document.getElementById('f-emoji').addEventListener('input', e => {
+  if (e.isComposing) return;
+  const kept = normalizeEmoji(e.target.value);
+  if (e.target.value !== (kept || '')) e.target.value = kept || '';
 });
 
 document.getElementById('hol-mgr-btn').addEventListener('click', openHolManager);
