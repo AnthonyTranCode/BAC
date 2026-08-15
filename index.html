@@ -1295,6 +1295,7 @@
 
     .lp-wordmark { display: flex; align-items: center; gap: 12px; }
     .lp-mark {
+      display: block;
       width: 22px; height: 33px;
       background: var(--foreground);
       -webkit-mask: url(assets/monolith-mark.png) center / contain no-repeat;
@@ -1403,6 +1404,24 @@
       box-shadow: var(--shadow-lg);
       padding: 32px;
     }
+    /* The wordmark doubles as the way out: a visitor who changes their mind
+       clicks it and lands back where they started. */
+    .auth-home {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 20px; padding: 4px; margin-left: -4px;
+      background: none; border: none; border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: opacity var(--duration, 200ms) var(--ease-standard);
+    }
+    .auth-home:hover { opacity: 0.65; }
+    .auth-home:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+    .auth-home.hidden { display: none; }
+    .auth-home .lp-mark { width: 18px; height: 27px; }
+    .auth-home-txt {
+      font: var(--weight-medium) 15px/1 var(--font);
+      color: var(--foreground); letter-spacing: -0.01em;
+    }
+
     .auth-title {
       font-family: var(--font-headline);
       font-weight: var(--weight-medium);
@@ -1558,6 +1577,10 @@
 <!-- Auth Gate — shown until a session is confirmed -->
 <div id="auth-gate">
   <div class="auth-card">
+    <button type="button" class="auth-home" id="auth-home" aria-label="Monolith — back to the home page">
+      <span class="lp-mark"></span>
+      <span class="auth-home-txt">Monolith</span>
+    </button>
     <div class="auth-title">Year Planner</div>
     <div class="auth-sub" id="auth-sub">Sign in to reach your plan</div>
 
@@ -4595,6 +4618,14 @@ function enterAuth(mode) {
   document.getElementById('auth-email').focus();
 }
 
+// Changed their mind at the gate — back to where they came in.
+function backToLanding() {
+  clearAuthMsgs();
+  $gate.classList.add('hidden');
+  showLanding();
+}
+
+document.getElementById('auth-home').addEventListener('click', backToLanding);
 document.getElementById('lp-cta').addEventListener('click', () => enterAuth('signup'));
 document.getElementById('lp-signin').addEventListener('click', () => enterAuth('signin'));
 document.getElementById('lp-privacy').addEventListener('click', e => e.preventDefault());
@@ -4620,7 +4651,7 @@ const AUTH_MODES = {
   },
   newpassword: {
     sub: 'Choose a new password', submit: 'Set new password', busy: 'Saving…',
-    email: false, password: true, forgot: false, toggle: false,
+    email: false, password: true, forgot: false, toggle: false, home: false,
     toggleTxt: '', toggleBtn: '',
     autocomplete: 'new-password',
   },
@@ -4646,6 +4677,7 @@ function setAuthMode(mode) {
   document.getElementById('auth-password').setAttribute('autocomplete', m.autocomplete);
   document.getElementById('auth-forgot').classList.toggle('hidden', !m.forgot);
   document.getElementById('auth-toggle').classList.toggle('hidden', !m.toggle);
+  document.getElementById('auth-home').classList.toggle('hidden', m.home === false);
   document.getElementById('auth-toggle-txt').textContent = m.toggleTxt;
   document.getElementById('auth-toggle-btn').textContent = m.toggleBtn;
 
