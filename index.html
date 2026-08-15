@@ -496,6 +496,8 @@
       padding: 24px;
       width: 448px;
       max-width: calc(100vw - 32px);
+      max-height: calc(100vh - 32px);
+      overflow-y: auto;
       box-shadow: var(--shadow-lg);
     }
 
@@ -859,6 +861,118 @@
       #toast { transition: opacity var(--duration-75) linear; }
     }
 
+    /* ── Date range picker ─────────────────────────────────── */
+    .fld-hint {
+      font-weight: var(--weight-normal);
+      color: var(--muted-foreground);
+      margin-left: 6px;
+    }
+
+    .dp {
+      border: 1px solid var(--input);
+      border-radius: var(--radius-lg);
+      padding: 10px 12px 12px;
+      user-select: none;
+    }
+
+    .dp-head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .dp-month {
+      font-size: 13px; font-weight: var(--weight-medium);
+      color: var(--foreground);
+    }
+    .dp-nav {
+      display: flex; align-items: center; justify-content: center;
+      width: 26px; height: 26px; padding: 0;
+      background: none; border: none; cursor: pointer;
+      color: var(--muted-foreground);
+      border-radius: var(--radius-md);
+      transition: background var(--duration) var(--ease-standard),
+                  color var(--duration) var(--ease-standard);
+    }
+    .dp-nav:hover:not(:disabled) { background: var(--accent); color: var(--foreground); }
+    .dp-nav:disabled { opacity: 0.3; cursor: default; }
+
+    .dp-dow, .dp-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+    }
+    .dp-dow span {
+      text-align: center;
+      font-size: 10px; font-weight: var(--weight-medium);
+      color: var(--muted-foreground);
+      padding-bottom: 4px;
+    }
+
+    .dp-day {
+      position: relative;
+      height: 30px;
+      border: none; background: none; padding: 0;
+      font: var(--weight-normal) 12px/1 var(--font);
+      color: var(--foreground);
+      cursor: pointer;
+    }
+    .dp-day.other  { color: var(--muted-foreground); opacity: 0.55; }
+    .dp-day:disabled { opacity: 0.25; cursor: default; }
+
+    /* The selection band sits behind the number and squares off mid-range so
+       a multi-day run reads as one continuous bar. */
+    .dp-day::before {
+      content: '';
+      position: absolute; inset: 2px 0;
+      border-radius: var(--radius-md);
+      background: transparent;
+      transition: background var(--duration-75) var(--ease-standard);
+    }
+    .dp-day > span { position: relative; }
+    .dp-day:hover:not(:disabled)::before { background: var(--accent); }
+
+    .dp-day.in-range::before  { background: var(--muted); border-radius: 0; }
+    .dp-day.range-start::before,
+    .dp-day.range-end::before { background: var(--primary); }
+    .dp-day.range-start.in-range::before { border-radius: var(--radius-md) 0 0 var(--radius-md); }
+    .dp-day.range-end.in-range::before   { border-radius: 0 var(--radius-md) var(--radius-md) 0; }
+    .dp-day.range-start.range-end::before { border-radius: var(--radius-md); }
+    .dp-day.range-start, .dp-day.range-end {
+      color: var(--primary-foreground); font-weight: var(--weight-medium);
+    }
+
+    .dp-day.is-today > span::after {
+      content: '';
+      position: absolute; left: 50%; bottom: -5px;
+      width: 3px; height: 3px; margin-left: -1.5px;
+      border-radius: var(--radius-full);
+      background: currentColor;
+    }
+
+    .dp-day:focus-visible {
+      outline: 2px solid var(--ring);
+      outline-offset: -2px;
+      border-radius: var(--radius-md);
+      z-index: 1;
+    }
+
+    .dp-summary {
+      margin-top: 10px; padding-top: 10px;
+      border-top: 1px solid var(--border);
+      font-size: 12px; color: var(--muted-foreground);
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    }
+    .dp-summary b {
+      font-weight: var(--weight-medium); color: var(--foreground);
+    }
+    .dp-clear {
+      background: none; border: none; padding: 0;
+      font: var(--weight-normal) 12px/1 var(--font);
+      color: var(--muted-foreground); cursor: pointer;
+      text-decoration: underline; text-underline-offset: 2px;
+      flex-shrink: 0;
+    }
+    .dp-clear:hover { color: var(--foreground); }
+    .dp-clear.hidden { display: none; }
+
     /* ── Repeat control ────────────────────────────────────── */
     .repeat-row {
       display: flex; align-items: flex-start; gap: 9px;
@@ -1178,12 +1292,26 @@
 
     <div class="form-row">
       <div class="fld">
-        <label>Start date</label>
-        <input type="date" id="f-start">
-      </div>
-      <div class="fld">
-        <label>End date (optional)</label>
-        <input type="date" id="f-end">
+        <label>Dates <span class="fld-hint">Click a day, or drag across days for a trip</span></label>
+        <div class="dp">
+          <div class="dp-head">
+            <button type="button" class="dp-nav" id="dp-prev" aria-label="Previous month">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <span class="dp-month" id="dp-month"></span>
+            <button type="button" class="dp-nav" id="dp-next" aria-label="Next month">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+          <div class="dp-dow" aria-hidden="true">
+            <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+          </div>
+          <div class="dp-grid" id="dp-grid" role="grid"></div>
+          <div class="dp-summary" id="dp-summary"></div>
+        </div>
+        <!-- Source of truth for save/delete; the picker writes into these. -->
+        <input type="date" id="f-start" hidden>
+        <input type="date" id="f-end" hidden>
       </div>
     </div>
 
@@ -1776,6 +1904,185 @@ function fitChips() {
 }
 
 // ── Modal ────────────────────────────────────────────────────
+// ── Date range picker ────────────────────────────────────────
+// Replaces the two date inputs. Click a day for a single-day event, or drag
+// across days for a range. The hidden #f-start / #f-end inputs stay the source
+// of truth so save/delete/validation are untouched.
+
+let dpYear = 2026, dpMonth = 0;   // month on display
+let dpStart = null, dpEnd = null; // selection, always start <= end
+let dpDragging = false, dpAnchor = null;
+
+function dpOpen(startDate, endDate) {
+  dpStart = startDate;
+  dpEnd   = endDate || startDate;
+  const p = parseDate(dpStart);
+  dpYear = p.year; dpMonth = p.month;
+  dpSync();
+  dpRender();
+}
+
+// Push the selection into the hidden inputs in the shape the rest of the app
+// expects: endDate is null for a single-day event.
+function dpSync() {
+  document.getElementById('f-start').value = dpStart || '';
+  document.getElementById('f-end').value   =
+    (dpEnd && dpEnd !== dpStart) ? dpEnd : '';
+}
+
+function dpSet(a, b) {
+  if (dateInt(a) <= dateInt(b)) { dpStart = a; dpEnd = b; }
+  else                          { dpStart = b; dpEnd = a; }
+  dpSync();
+  dpPaint();
+  dpSummary();
+  document.getElementById('date-err').classList.add('hidden');
+}
+
+function dpShiftMonth(delta) {
+  let m = dpMonth + delta, y = dpYear;
+  if (m < 0)  { m = 11; y--; }
+  if (m > 11) { m = 0;  y++; }
+  if (y < YEAR_MIN || y > YEAR_MAX) return;
+  dpYear = y; dpMonth = m;
+  dpRender();
+}
+
+function dpRender() {
+  document.getElementById('dp-month').textContent = `${MONTH_LG[dpMonth]} ${dpYear}`;
+  document.getElementById('dp-prev').disabled =
+    (dpYear === YEAR_MIN && dpMonth === 0);
+  document.getElementById('dp-next').disabled =
+    (dpYear === YEAR_MAX && dpMonth === 11);
+
+  const grid = document.getElementById('dp-grid');
+  grid.innerHTML = '';
+
+  // Six weeks starting from the Sunday on or before the 1st.
+  const first  = new Date(dpYear, dpMonth, 1);
+  const cursor = new Date(dpYear, dpMonth, 1 - first.getDay());
+  const today  = todayStr();
+
+  for (let i = 0; i < 42; i++) {
+    const y = cursor.getFullYear(), m = cursor.getMonth(), d = cursor.getDate();
+    const ds = padDate(y, m, d);
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'dp-day';
+    btn.dataset.date = ds;
+    if (m !== dpMonth) btn.classList.add('other');
+    if (ds === today)  btn.classList.add('is-today');
+    if (y < YEAR_MIN || y > YEAR_MAX) btn.disabled = true;
+
+    const span = document.createElement('span');
+    span.textContent = d;
+    btn.appendChild(span);
+    btn.setAttribute('aria-label', `${MONTH_LG[m]} ${d}, ${y}`);
+    grid.appendChild(btn);
+
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  dpPaint();
+  dpSummary();
+}
+
+// Apply selection classes without rebuilding the grid — this runs on every
+// mouse move during a drag.
+function dpPaint() {
+  document.querySelectorAll('.dp-day').forEach(btn => {
+    const ds = btn.dataset.date;
+    const inRange = dpStart && dpEnd &&
+                    dateInt(ds) >= dateInt(dpStart) && dateInt(ds) <= dateInt(dpEnd);
+    btn.classList.toggle('in-range',    !!inRange);
+    btn.classList.toggle('range-start', ds === dpStart);
+    btn.classList.toggle('range-end',   ds === dpEnd);
+    btn.setAttribute('aria-selected', String(!!inRange));
+  });
+}
+
+function dpSummary() {
+  const el = document.getElementById('dp-summary');
+  if (!dpStart) { el.textContent = 'Pick a date'; return; }
+
+  const s = parseDate(dpStart), e = parseDate(dpEnd);
+  const fmt = p => `${MONTH_LG[p.month]} ${p.day}`;
+  const days = Math.round((dateInt2ms(dpEnd) - dateInt2ms(dpStart)) / 86400000) + 1;
+
+  let text;
+  if (dpStart === dpEnd) {
+    text = `<b>${fmt(s)}, ${s.year}</b>`;
+  } else if (s.year === e.year) {
+    text = `<b>${fmt(s)} – ${fmt(e)}, ${s.year}</b> · ${days} days`;
+  } else {
+    text = `<b>${fmt(s)}, ${s.year} – ${fmt(e)}, ${e.year}</b> · ${days} days`;
+  }
+
+  el.innerHTML = `<span>${text}</span>` + (dpStart !== dpEnd
+    ? '<button type="button" class="dp-clear" id="dp-single">Make single day</button>' : '');
+
+  const single = document.getElementById('dp-single');
+  if (single) single.addEventListener('click', () => dpSet(dpStart, dpStart));
+}
+
+function dateInt2ms(ds) {
+  const p = parseDate(ds);
+  return new Date(p.year, p.month, p.day).getTime();
+}
+
+// ── Picker interaction ───────────────────────────────────────
+(function wireDatePicker() {
+  const grid = document.getElementById('dp-grid');
+
+  grid.addEventListener('mousedown', e => {
+    const btn = e.target.closest('.dp-day');
+    if (!btn || btn.disabled) return;
+    e.preventDefault();                     // don't start a text selection
+    if (e.shiftKey && dpStart) {            // shift-click extends across months
+      dpSet(dpAnchor || dpStart, btn.dataset.date);
+      return;
+    }
+    dpDragging = true;
+    dpAnchor   = btn.dataset.date;
+    dpSet(dpAnchor, dpAnchor);
+  });
+
+  grid.addEventListener('mouseover', e => {
+    if (!dpDragging) return;
+    const btn = e.target.closest('.dp-day');
+    if (!btn || btn.disabled) return;
+    dpSet(dpAnchor, btn.dataset.date);
+  });
+
+  // Ends the drag even if the pointer leaves the picker.
+  document.addEventListener('mouseup', () => { dpDragging = false; });
+
+  document.getElementById('dp-prev').addEventListener('click', () => dpShiftMonth(-1));
+  document.getElementById('dp-next').addEventListener('click', () => dpShiftMonth(1));
+
+  // Keyboard: arrows move focus, Enter/Space picks, Shift+Enter extends.
+  grid.addEventListener('keydown', e => {
+    const btn = e.target.closest('.dp-day');
+    if (!btn) return;
+    const step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[e.key];
+
+    if (step) {
+      e.preventDefault();
+      const days = [...grid.querySelectorAll('.dp-day')];
+      const next = days[days.indexOf(btn) + step];
+      if (next && !next.disabled) next.focus();
+      else dpShiftMonth(step < 0 ? -1 : 1);
+      return;
+    }
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      if (e.shiftKey && dpAnchor) dpSet(dpAnchor, btn.dataset.date);
+      else { dpAnchor = btn.dataset.date; dpSet(dpAnchor, dpAnchor); }
+    }
+  });
+})();
+
 function openModal(dateStr, ev) {
   editId   = ev ? ev.id : null;
   editFrom = ev?._from ?? null;      // set when editing a projected occurrence
@@ -1787,8 +2094,7 @@ function openModal(dateStr, ev) {
 
   document.getElementById('f-title').value = ev?.title    || '';
   document.getElementById('f-cat').value   = ev?.category || 'adventures';
-  document.getElementById('f-start').value = ev?.startDate || dateStr;
-  document.getElementById('f-end').value   = ev?.endDate   || '';
+  dpOpen(ev?.startDate || dateStr, ev?.endDate || null);
   document.getElementById('f-repeat').checked = ev?.repeat === 'yearly';
 
   // Editing any occurrence edits the whole series — say so plainly.
