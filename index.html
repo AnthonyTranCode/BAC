@@ -1248,6 +1248,144 @@
     }
     .series-note.hidden { display: none; }
 
+    /* ── Landing ───────────────────────────────────────────── */
+    /* Ported from the "Monolith Landing" design. The design's literal hexes
+       are the same Grain values the app already carries, so they're written
+       as tokens here and the page follows the theme for free. */
+    #landing {
+      position: fixed; inset: 0; z-index: 150;
+      overflow-y: auto;
+      background: var(--background);
+      color: var(--foreground);
+      font-family: var(--font);
+      padding: 24px;
+      /* flex-start, not stretch: a stretched shell makes its column children
+         shrink to the viewport, and .lp-hero's overflow:hidden then eats the
+         headline and CTA instead of the page scrolling. */
+      display: flex; justify-content: center; align-items: flex-start;
+      --cta-hover: #272725;   /* design's button hover; no light token matches */
+    }
+    #landing.hidden { display: none; }
+    [data-theme="dark"] #landing { --cta-hover: var(--muted); }
+
+    /* The calendar's floating controls are fixed-position and outrank both
+       overlays, so they're taken down until the planner itself is on screen.
+       (They used to float over the sign-in card too.) */
+    body.chrome-off .zoom-bar,
+    body.chrome-off .size-panel,
+    body.chrome-off #toast { display: none !important; }
+
+    .lp-shell {
+      width: 100%; max-width: 1280px;
+      display: flex; flex-direction: column; gap: 32px;
+    }
+    .lp-shell > * { flex-shrink: 0; }
+
+    .lp-hero {
+      background: var(--card);
+      border-radius: var(--radius-2xl);
+      box-shadow: var(--shadow-md);
+      overflow: hidden;
+    }
+
+    .lp-hero-head {
+      padding: 32px 40px 0;
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    }
+
+    .lp-wordmark { display: flex; align-items: center; gap: 12px; }
+    .lp-mark {
+      width: 22px; height: 33px;
+      background: var(--foreground);
+      -webkit-mask: url(assets/monolith-mark.png) center / contain no-repeat;
+              mask: url(assets/monolith-mark.png) center / contain no-repeat;
+    }
+    .lp-wordmark-txt {
+      font-size: 16px; font-weight: var(--weight-medium); letter-spacing: -0.01em;
+    }
+
+    .lp-signin {
+      background: none; border: none; padding: 0;
+      font: var(--weight-medium) 14px/1 var(--font);
+      color: var(--muted-foreground);
+      cursor: pointer;
+      transition: color var(--duration, 200ms) var(--ease-standard);
+    }
+    .lp-signin:hover { color: var(--foreground); }
+    .lp-signin:focus-visible {
+      outline: 2px solid var(--ring); outline-offset: 3px; border-radius: var(--radius-md);
+    }
+
+    .lp-dots { display: block; width: 100%; height: 340px; margin-top: 8px; }
+
+    .lp-hero-body {
+      display: grid; grid-template-columns: 1.2fr 1fr;
+      gap: 48px; align-items: end;
+      padding: 8px 40px 48px;
+    }
+
+    .lp-headline {
+      margin: 0;
+      font-size: 72px; font-weight: var(--weight-medium);
+      letter-spacing: -0.02em; line-height: 1.04; text-wrap: pretty;
+    }
+
+    .lp-pitch { display: flex; flex-direction: column; gap: 12px; padding-bottom: 6px; }
+    .lp-sub  { margin: 0; font-size: 18px; line-height: 1.5; color: var(--foreground); }
+    .lp-fine { margin: 0; font-size: 12px; color: var(--muted-foreground); }
+
+    .lp-cta {
+      display: flex; align-items: center; justify-content: center;
+      height: 44px; margin-top: 4px;
+      font: var(--weight-medium) 14px/1 var(--font);
+      color: var(--primary-foreground); background: var(--primary);
+      border: none; border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      cursor: pointer;
+      transition: background var(--duration, 200ms) var(--ease-standard);
+    }
+    .lp-cta:hover { background: var(--cta-hover); }
+    .lp-cta:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+
+    .lp-features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
+
+    .lp-card {
+      background: var(--card);
+      border-radius: var(--radius-2xl);
+      box-shadow: var(--shadow-md);
+      padding: 24px;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .lp-card svg { color: var(--foreground); }
+    .lp-card-ttl { font-size: 20px; font-weight: var(--weight-medium); letter-spacing: -0.01em; }
+    .lp-card-txt { font-size: 14px; line-height: 1.5; color: var(--muted-foreground); }
+
+    .lp-foot {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 8px 24px;
+      font-size: 12px; color: var(--muted-foreground);
+    }
+    .lp-foot a {
+      color: var(--muted-foreground); text-decoration: none;
+      transition: color var(--duration, 200ms) var(--ease-standard);
+    }
+    .lp-foot a:hover { color: var(--foreground); }
+
+    /* The design is drawn at 1280px. Below that the two grids would crush
+       rather than reflow, so they stack. */
+    @media (max-width: 900px) {
+      .lp-hero-body { grid-template-columns: 1fr; gap: 24px; align-items: start; }
+      .lp-headline  { font-size: 52px; }
+      .lp-features  { grid-template-columns: 1fr; gap: 16px; }
+      .lp-hero-head { padding: 24px 24px 0; }
+      .lp-hero-body { padding: 8px 24px 32px; }
+      .lp-dots      { height: 220px; }
+    }
+    @media (max-width: 560px) {
+      .lp-headline { font-size: 40px; }
+      #landing     { padding: 12px; }
+    }
+
     /* ── Auth gate ─────────────────────────────────────────── */
     #auth-gate {
       position: fixed; inset: 0; z-index: 100;
@@ -1364,7 +1502,58 @@
     @media (max-width: 1100px) { .acct-email { display: none; } }
   </style>
 </head>
-<body>
+<body class="chrome-off">
+
+<!-- Landing — the first thing a signed-out visitor sees, ahead of the gate -->
+<div id="landing" class="hidden">
+  <div class="lp-shell">
+
+    <section class="lp-hero">
+      <div class="lp-hero-head">
+        <div class="lp-wordmark">
+          <div class="lp-mark" role="img" aria-label="Monolith"></div>
+          <div class="lp-wordmark-txt">Monolith</div>
+        </div>
+        <button type="button" class="lp-signin" id="lp-signin">Sign in</button>
+      </div>
+
+      <canvas id="lp-dots" class="lp-dots" aria-hidden="true"></canvas>
+
+      <div class="lp-hero-body">
+        <h1 class="lp-headline">One year.<br>One monolith.</h1>
+        <div class="lp-pitch">
+          <p class="lp-sub">The whole year on one page, organized around the one thing you'll actually remember.</p>
+          <button type="button" class="lp-cta" id="lp-cta">Raise your monolith</button>
+          <p class="lp-fine">One email a quarter. If there's nothing worth saying, we don't send.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="lp-features">
+      <div class="lp-card">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/><path d="M15 3v18"/></svg>
+        <div class="lp-card-ttl">See the whole year</div>
+        <div class="lp-card-txt">Not a month at a time. All 365 days, at once, on a wall.</div>
+      </div>
+      <div class="lp-card">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><rect width="8" height="12" x="8" y="6" rx="1" fill="currentColor" stroke="none" opacity="0.15"/><rect width="8" height="12" x="8" y="6" rx="1"/></svg>
+        <div class="lp-card-ttl">Raise one monolith</div>
+        <div class="lp-card-txt">Choose one thing you might fail at. One per year — the constraint is the product.</div>
+      </div>
+      <div class="lp-card">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="m9 16 2 2 4-4"/></svg>
+        <div class="lp-card-ttl">Look back and see something</div>
+        <div class="lp-card-txt">By December the calendar is a record, not a plan.</div>
+      </div>
+    </section>
+
+    <footer class="lp-foot">
+      <div>One year. One monolith.</div>
+      <div><a href="#" id="lp-privacy">Privacy policy</a></div>
+    </footer>
+
+  </div>
+</div>
 
 <!-- Auth Gate — shown until a session is confirmed -->
 <div id="auth-gate">
@@ -4274,11 +4463,141 @@ function clearAuthMsgs() {
 }
 
 function showAuthForm() {
+  document.body.classList.add('chrome-off');
   $booting.classList.add('hidden');
   $form.classList.remove('hidden');
   $toggle.classList.remove('hidden');
   $gate.classList.remove('hidden');
 }
+
+// ── Landing ──────────────────────────────────────────────────
+// Sits in front of the gate for signed-out visitors. The gate keeps doing its
+// own job; this only decides whether it's the first thing you meet.
+
+const $landing = document.getElementById('landing');
+
+// 5×7 bitmap font for the scrolling dot band, transcribed from the design.
+const DOT_GLYPHS = {
+  C:['.###.','#...#','#....','#....','#....','#...#','.###.'],
+  O:['.###.','#...#','#...#','#...#','#...#','#...#','.###.'],
+  M:['#...#','##.##','#.#.#','#.#.#','#...#','#...#','#...#'],
+  I:['#####','..#..','..#..','..#..','..#..','..#..','#####'],
+  T:['#####','..#..','..#..','..#..','..#..','..#..','..#..'],
+  B:['####.','#...#','#...#','####.','#...#','#...#','####.'],
+  U:['#...#','#...#','#...#','#...#','#...#','#...#','.###.'],
+  L:['#....','#....','#....','#....','#....','#....','#####'],
+  D:['####.','#...#','#...#','#...#','#...#','#...#','####.'],
+  F:['#####','#....','#....','####.','#....','#....','#....'],
+  N:['#...#','##..#','#.#.#','#..##','#...#','#...#','#...#'],
+  S:['.####','#....','#....','.###.','....#','....#','####.'],
+  H:['#...#','#...#','#...#','#####','#...#','#...#','#...#'],
+  E:['#####','#....','#....','####.','#....','#....','#####'],
+  R:['####.','#...#','#...#','####.','#.#..','#..#.','#...#'],
+  Y:['#...#','#...#','.#.#.','..#..','..#..','..#..','..#..'],
+  G:['.###.','#...#','#....','#.###','#...#','#...#','.###.'],
+  A:['.###.','#...#','#...#','#####','#...#','#...#','#...#'],
+  P:['####.','#...#','#...#','####.','#....','#....','#....'],
+  '.':['.....','.....','.....','.....','.....','.##..','.##..'],
+  ' ':['..','..','..','..','..','..','..'],
+};
+const DOT_WORDS   = 'GOALS. TRIPS. YEAR. CALENDAR. ';
+const DOT_PALETTE = ['#C8873B', '#0b59ea', '#417713', '#f4da48', '#d33003'];
+
+let _dotRaf = null;
+
+function startDotBand() {
+  const cv = document.getElementById('lp-dots');
+  if (!cv || _dotRaf !== null) return;
+
+  // One row of the marquee, as cell coordinates.
+  const cells = [];
+  let col = 0;
+  for (const ch of DOT_WORDS.toUpperCase() + ' ') {
+    const g = DOT_GLYPHS[ch] || DOT_GLYPHS[' '];
+    for (let r = 0; r < 7; r++)
+      for (let c = 0; c < g[r].length; c++)
+        if (g[r][c] === '#') cells.push({ c: col + c, r });
+    col += g[0].length + 1;
+  }
+  const patternCols = col;
+
+  const hash = n => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const t0 = performance.now();
+
+  const draw = () => {
+    const dpr = window.devicePixelRatio || 1;
+    const w = cv.clientWidth, h = cv.clientHeight;
+    if (cv.width !== w * dpr) { cv.width = w * dpr; cv.height = h * dpr; }
+    const x = cv.getContext('2d');
+    x.setTransform(dpr, 0, 0, dpr, 0, 0);
+    x.clearRect(0, 0, w, h);
+
+    // Reduced motion gets the settled frame instead of the scroll.
+    const t = still ? 6 : (performance.now() - t0) / 1000;
+    const pitch = 13, sq = 7, rowH = 7 * pitch, rowGap = 22, top = 18;
+    const patW = patternCols * pitch;
+
+    for (let row = 0; row < 3; row++) {
+      const dir = row % 2 ? 1 : -1;
+      const off = ((t * 9 * dir) % patW + patW) % patW;
+      const stagger = row * patW * 0.37;
+      for (const cell of cells) {
+        for (let rep = -1; rep * patW < w + patW; rep++) {
+          const px = cell.c * pitch + rep * patW - off + stagger % patW;
+          if (px < -pitch || px > w) continue;
+          const id = cell.c * 7 + cell.r + row * 9973;
+          const a = Math.min(1, Math.max(0, (t - hash(id) * 2.2) / 0.5));
+          if (a <= 0) continue;
+          const h2 = hash(id + 5000);
+          const phase = (t * 0.22 + h2) % 1;
+          let color = '#dcdcd8', al = a;
+          if (phase < 0.045)      color = DOT_PALETTE[Math.floor(h2 * DOT_PALETTE.length)];
+          else if (phase < 0.09)  al = a * 0.45;
+          x.globalAlpha = al;
+          x.fillStyle = color;
+          x.fillRect(px, top + row * (rowH + rowGap) + cell.r * pitch, sq, sq);
+        }
+      }
+    }
+    x.globalAlpha = 1;
+    if (still) { _dotRaf = null; return; }   // one frame is the whole animation
+    _dotRaf = requestAnimationFrame(draw);
+  };
+  _dotRaf = requestAnimationFrame(draw);
+}
+
+function stopDotBand() {
+  if (_dotRaf !== null) cancelAnimationFrame(_dotRaf);
+  _dotRaf = null;
+}
+
+function showLanding() {
+  $landing.classList.remove('hidden');
+  document.body.classList.add('chrome-off');
+  $landing.scrollTop = 0;
+  startDotBand();
+}
+
+function hideLanding() {
+  $landing.classList.add('hidden');
+  document.body.classList.remove('chrome-off');
+  stopDotBand();
+}
+
+// Leaving the landing for the gate. The CTA reads as "start", so it opens the
+// sign-up side; the header link opens sign-in.
+function enterAuth(mode) {
+  hideLanding();
+  clearAuthMsgs();
+  setAuthMode(mode);
+  showAuthForm();
+  document.getElementById('auth-email').focus();
+}
+
+document.getElementById('lp-cta').addEventListener('click', () => enterAuth('signup'));
+document.getElementById('lp-signin').addEventListener('click', () => enterAuth('signin'));
+document.getElementById('lp-privacy').addEventListener('click', e => e.preventDefault());
 
 const AUTH_MODES = {
   signin: {
@@ -4468,6 +4787,7 @@ async function startApp(user) {
   applyTextScale(loadTextScale(), { rerender: false });
 
   // Hide the overlay first so renderCalendar's fit measures the real viewport.
+  hideLanding();
   $gate.classList.add('hidden');
   renderCalendar();
 
@@ -4484,6 +4804,7 @@ sb.auth.onAuthStateChange((event, session) => {
     _recovering = true;
     history.replaceState(null, '', window.location.pathname);  // strip token from URL
     setAuthMode('newpassword');
+    hideLanding();          // a reset link goes straight to the form
     showAuthForm();
     authNote('Enter a new password for your account.');
     return;
@@ -4510,7 +4831,12 @@ sb.auth.onAuthStateChange((event, session) => {
 
   document.getElementById('acct-email').textContent = '';
   setAuthMode('signin');
-  showAuthForm();
+
+  // Nobody signed in: the landing is the front door, and the gate waits behind
+  // it until they ask for it. Signing out returns them to the same place.
+  $booting.classList.add('hidden');
+  $gate.classList.add('hidden');
+  showLanding();
 });
 </script>
 </body>
