@@ -1868,7 +1868,9 @@ function buildGrid() {
         if (barMonth.get(ev) !== m) continue;    // drawn in its dominant month only
         const bs = (sm === m && sy === curYear) ? sd : 1;
         const be = (em === m && ey === curYear) ? ed : dim;
-        bars.push({ ...ev, s: bs, e: be });
+        // The block is drawn in every month it covers, so the real span stays
+        // visible; only the dominant month carries the title.
+        bars.push({ ...ev, s: bs, e: be, showLabel: barMonth.get(ev) === m });
       } else {
         (chipsByDay[sd] = chipsByDay[sd] || []).push(ev);
       }
@@ -1922,8 +1924,12 @@ function buildGrid() {
       barEl.style.left  = `calc(${bar.s - 1} * var(--cell-w) + 1px)`;
       barEl.style.width = `calc(${bar.e - bar.s + 1} * var(--cell-w) - 2px)`;
       barEl.style.top   = (bar.track * TRACK_H + 1) + 'px';
-      barEl.textContent = (bar.emoji ? bar.emoji + ' ' : '') + bar.title;
-      barEl.title       = bar.title;
+      // Continuation segments stay blank so the title isn't repeated row after
+      // row; the tooltip still identifies them.
+      barEl.textContent = bar.showLabel
+        ? (bar.emoji ? bar.emoji + ' ' : '') + bar.title
+        : '';
+      barEl.title = bar.title;
       applyCatStyle(barEl, bar.category);
 
       // mousedown drives both click (no movement) and drag (movement)
