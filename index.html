@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Year Planner</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="./config.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -749,9 +751,144 @@
       transition: background var(--duration, 200ms) var(--ease-standard), color var(--duration, 200ms) var(--ease-standard);
     }
     .hol-del-btn:hover { color: var(--destructive); background: var(--accent); }
+
+    /* ── Auth gate ─────────────────────────────────────────── */
+    #auth-gate {
+      position: fixed; inset: 0; z-index: 100;
+      background: var(--bg-page);
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    #auth-gate.hidden { display: none; }
+
+    .auth-card {
+      width: 100%; max-width: 380px;
+      background: var(--background);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-2xl);
+      box-shadow: var(--shadow-lg);
+      padding: 32px;
+    }
+    .auth-title {
+      font-family: var(--font-headline);
+      font-weight: var(--weight-medium);
+      font-size: 22px; color: var(--foreground);
+      letter-spacing: -0.01em;
+    }
+    .auth-sub {
+      font-size: 13px; color: var(--muted-foreground);
+      margin-top: 4px; margin-bottom: 24px;
+    }
+    .auth-lbl {
+      display: block; font-size: 12px;
+      font-weight: var(--weight-medium);
+      color: var(--foreground); margin-bottom: 6px;
+    }
+    .auth-input {
+      width: 100%; height: 38px; padding: 0 11px;
+      font-family: var(--font); font-size: 13px;
+      color: var(--foreground); background: var(--background);
+      border: 1px solid var(--input);
+      border-radius: var(--radius-md);
+      margin-bottom: 14px; outline: none;
+      transition: border-color var(--duration) var(--ease-standard),
+                  box-shadow   var(--duration) var(--ease-standard);
+    }
+    .auth-input:focus {
+      border-color: var(--ring);
+      box-shadow: 0 0 0 3px rgb(16 16 15 / 0.08);
+    }
+    .auth-btn {
+      width: 100%; height: 38px; margin-top: 4px;
+      font-family: var(--font); font-size: 13px;
+      font-weight: var(--weight-medium);
+      color: var(--primary-foreground); background: var(--primary);
+      border: none; border-radius: var(--radius-md); cursor: pointer;
+      transition: opacity var(--duration) var(--ease-standard);
+    }
+    .auth-btn:hover:not(:disabled) { opacity: 0.85; }
+    .auth-btn:disabled { opacity: 0.5; cursor: default; }
+
+    .auth-err {
+      font-size: 12px; color: var(--destructive);
+      background: rgb(211 48 3 / 0.07);
+      border-radius: var(--radius-md);
+      padding: 8px 10px; margin-bottom: 12px;
+    }
+    .auth-err.hidden { display: none; }
+
+    .auth-note {
+      font-size: 12px; color: var(--success);
+      background: rgb(65 119 19 / 0.08);
+      border-radius: var(--radius-md);
+      padding: 8px 10px; margin-bottom: 12px;
+    }
+    .auth-note.hidden { display: none; }
+
+    .auth-toggle {
+      margin-top: 18px; text-align: center;
+      font-size: 12px; color: var(--muted-foreground);
+    }
+    .auth-toggle button {
+      background: none; border: none; padding: 0; margin-left: 4px;
+      font-family: var(--font); font-size: 12px;
+      font-weight: var(--weight-medium);
+      color: var(--foreground); cursor: pointer;
+      text-decoration: underline; text-underline-offset: 2px;
+    }
+    .auth-booting {
+      text-align: center; font-size: 13px;
+      color: var(--muted-foreground); padding: 8px 0;
+    }
+
+    /* ── Account controls in header ─────────────────────────── */
+    .sync-dot {
+      width: 6px; height: 6px; border-radius: var(--radius-full);
+      background: var(--success); flex-shrink: 0;
+      transition: background var(--duration) var(--ease-standard);
+    }
+    .sync-dot.pending { background: var(--warning); }
+    .sync-dot.error   { background: var(--destructive); }
+    .acct-email {
+      font-size: 11px; color: var(--muted-foreground);
+      max-width: 110px; overflow: hidden;
+      text-overflow: ellipsis; white-space: nowrap;
+    }
+    /* The header is built for wide screens; drop the label before it squeezes. */
+    @media (max-width: 1100px) { .acct-email { display: none; } }
   </style>
 </head>
 <body>
+
+<!-- Auth Gate — shown until a session is confirmed -->
+<div id="auth-gate">
+  <div class="auth-card">
+    <div class="auth-title">Year Planner</div>
+    <div class="auth-sub" id="auth-sub">Sign in to reach your plan</div>
+
+    <div class="auth-booting" id="auth-booting">Checking your session…</div>
+
+    <form id="auth-form" class="hidden">
+      <div class="auth-err  hidden" id="auth-err"></div>
+      <div class="auth-note hidden" id="auth-note"></div>
+
+      <label class="auth-lbl" for="auth-email">Email</label>
+      <input class="auth-input" type="email" id="auth-email"
+             required autocomplete="email" autocapitalize="off" spellcheck="false" />
+
+      <label class="auth-lbl" for="auth-password">Password</label>
+      <input class="auth-input" type="password" id="auth-password"
+             required minlength="8" autocomplete="current-password" />
+
+      <button class="auth-btn" type="submit" id="auth-submit">Sign in</button>
+    </form>
+
+    <div class="auth-toggle hidden" id="auth-toggle">
+      <span id="auth-toggle-txt">New here?</span>
+      <button type="button" id="auth-toggle-btn">Create an account</button>
+    </div>
+  </div>
+</div>
 
 <!-- Page Header -->
 <div class="page-header" id="page-header">
@@ -787,6 +924,12 @@
           <line x1="12" y1="15" x2="12" y2="3"/>
         </svg>
         Export PNG
+      </button>
+      <div class="sep"></div>
+      <span class="sync-dot" id="sync-dot" title="All changes saved"></span>
+      <span class="acct-email" id="acct-email"></span>
+      <button class="cat-mgr-btn" id="signout-btn" title="Sign out">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
       </button>
     </div>
   </div>
@@ -1019,8 +1162,14 @@ function getHolidays(year, country) {
 // ── LocalStorage ─────────────────────────────────────────────
 function lsKey(y) { return `bac-planner-${y}`; }
 
+function allYears() {
+  const out = [];
+  for (let y = YEAR_MIN; y <= YEAR_MAX; y++) out.push(y);
+  return out;
+}
+
 function loadAll() {
-  [2026, 2027, 2028].forEach(y => {
+  allYears().forEach(y => {
     try { allEvents[y] = JSON.parse(localStorage.getItem(lsKey(y))) || []; }
     catch { allEvents[y] = []; }
   });
@@ -1028,6 +1177,7 @@ function loadAll() {
 
 function persist(y) {
   localStorage.setItem(lsKey(y), JSON.stringify(allEvents[y] || []));
+  queueSync({ year: y });
 }
 
 // ── Track Assignment ─────────────────────────────────────────
@@ -1727,6 +1877,7 @@ function loadCategories() {
 
 function persistCategories() {
   localStorage.setItem('bac-categories', JSON.stringify(categories));
+  queueSync({ profile: true });
 }
 
 // ── Stat Holidays ─────────────────────────────────────────────
@@ -1745,6 +1896,7 @@ function loadHolidayList(year, country) {
 
 function persistHolidayList(year, country, list) {
   localStorage.setItem(holKey(year, country), JSON.stringify(list));
+  queueSync({ year });
 }
 
 function openHolManager() {
@@ -1948,6 +2100,7 @@ function updateYearNav() {
 function setYear(y) {
   curYear = y;
   localStorage.setItem('bac-setup-year', String(curYear));
+  queueSync({ profile: true });
   updateYearNav();
   renderCalendar();
 }
@@ -2025,19 +2178,356 @@ window.addEventListener('wheel', e => {
   setZoom(curZoom + (e.deltaY < 0 ? step : -step));
 }, { passive: false });
 
-// ── Init ─────────────────────────────────────────────────────
-loadCategories();
-loadAll();
+// ── Supabase client ──────────────────────────────────────────
+const sb = window.supabase.createClient(
+  window.BAC_CONFIG.SUPABASE_URL,
+  window.BAC_CONFIG.SUPABASE_KEY
+);
+
+let currentUser = null;
+const COUNTRIES = ['CA', 'US'];
+
+// ── Local cache helpers ──────────────────────────────────────
+// localStorage is a *cache* of the cloud, so the app paints instantly
+// and keeps working offline. The cloud is the source of truth.
+
+function localKeys() {
+  return Object.keys(localStorage).filter(k => k.startsWith('bac-'));
+}
+
+function clearLocalCache() {
+  localKeys().forEach(k => localStorage.removeItem(k));
+}
+
+function hasLocalPlanData() {
+  return Object.keys(localStorage).some(k => {
+    if (!k.startsWith('bac-planner-')) return false;
+    try { return (JSON.parse(localStorage.getItem(k)) || []).length > 0; }
+    catch { return false; }   // corrupt cache must not block sign-in
+  });
+}
+
+function collectHolidays(y) {
+  const out = {};
+  COUNTRIES.forEach(c => {
+    const raw = localStorage.getItem(holKey(y, c));
+    if (raw) { try { out[c] = JSON.parse(raw); } catch {} }
+  });
+  return out;
+}
+
+// ── Sync status dot ──────────────────────────────────────────
+function setSyncStatus(state) {
+  const dot = document.getElementById('sync-dot');
+  if (!dot) return;
+  dot.classList.remove('pending', 'error');
+  if (state === 'pending' || state === 'saving') dot.classList.add('pending');
+  if (state === 'error')                        dot.classList.add('error');
+  dot.title = {
+    saved:   'All changes saved',
+    pending: 'Saving…',
+    saving:  'Saving…',
+    error:   'Could not save — will retry',
+  }[state] || '';
+}
+
+// ── Outbound sync (debounced) ────────────────────────────────
+const _dirtyYears = new Set();
+let _dirtyProfile = false;
+let _syncTimer    = null;
+let _syncing      = false;
+
+function queueSync({ year = null, profile = false } = {}) {
+  if (!currentUser) return;               // not signed in yet — local only
+  if (year != null) _dirtyYears.add(year);
+  if (profile)      _dirtyProfile = true;
+  setSyncStatus('pending');
+  clearTimeout(_syncTimer);
+  _syncTimer = setTimeout(flushSync, 800); // coalesce rapid edits (e.g. dragging)
+}
+
+async function flushSync() {
+  if (!currentUser || _syncing) return;
+
+  const years     = [..._dirtyYears]; _dirtyYears.clear();
+  const doProfile = _dirtyProfile;    _dirtyProfile = false;
+  if (!years.length && !doProfile) return;
+
+  _syncing = true;
+  setSyncStatus('saving');
+  const stamp = new Date().toISOString();
+
+  try {
+    const jobs = [];
+
+    if (years.length) {
+      jobs.push(sb.from('plans').upsert(
+        years.map(y => ({
+          user_id:    currentUser.id,
+          year:       y,
+          events:     allEvents[y] || [],
+          holidays:   collectHolidays(y),
+          updated_at: stamp,
+        })),
+        { onConflict: 'user_id,year' }
+      ));
+    }
+
+    if (doProfile) {
+      jobs.push(sb.from('profiles').upsert({
+        user_id:    currentUser.id,
+        categories,
+        setup_year: curYear,
+        updated_at: stamp,
+      }, { onConflict: 'user_id' }));
+    }
+
+    const failed = (await Promise.all(jobs)).find(r => r.error);
+    if (failed) throw failed.error;
+
+    setSyncStatus('saved');
+  } catch (err) {
+    console.error('[sync] save failed:', err);
+    // Put the work back on the queue and retry with a longer delay.
+    years.forEach(y => _dirtyYears.add(y));
+    if (doProfile) _dirtyProfile = true;
+    setSyncStatus('error');
+  } finally {
+    _syncing = false;
+    if (_dirtyYears.size || _dirtyProfile) {
+      clearTimeout(_syncTimer);
+      _syncTimer = setTimeout(flushSync, 3000);
+    }
+  }
+}
+
+// Don't lose the last edit if the tab closes mid-debounce.
+window.addEventListener('beforeunload', () => {
+  if (_dirtyYears.size || _dirtyProfile) flushSync();
+});
+
+// Catch up after the tab has been backgrounded or the network dropped.
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && (_dirtyYears.size || _dirtyProfile)) flushSync();
+});
+
+// ── Inbound hydration ────────────────────────────────────────
+// Pull the user's rows down and write them into the localStorage cache,
+// so all the existing synchronous load functions work unchanged.
+
+async function hydrateFromCloud() {
+  const [plansRes, profRes] = await Promise.all([
+    sb.from('plans').select('year, events, holidays').eq('user_id', currentUser.id),
+    sb.from('profiles').select('categories, setup_year').eq('user_id', currentUser.id).maybeSingle(),
+  ]);
+  if (plansRes.error) throw plansRes.error;
+  if (profRes.error)  throw profRes.error;
+
+  const plans = plansRes.data || [];
+  const prof  = profRes.data;
+
+  // A brand-new account, on a browser holding a plan built before login:
+  // adopt that work instead of discarding it.
+  if (!plans.length && !prof && hasLocalPlanData()) {
+    console.info('[sync] no cloud data — migrating this browser\'s plan into the new account');
+    localStorage.setItem('bac-cache-user', currentUser.id);
+    loadCategories();                 // populate `categories` and `allEvents`
+    loadAll();                        // *before* deciding what to upload
+    allYears()
+      .filter(y => (allEvents[y] || []).length)
+      .forEach(y => _dirtyYears.add(y));
+    _dirtyProfile = true;
+    await flushSync();
+    return;
+  }
+
+  // Otherwise the cloud wins. Drop any cache belonging to a previous user.
+  clearLocalCache();
+
+  plans.forEach(row => {
+    localStorage.setItem(lsKey(row.year), JSON.stringify(row.events || []));
+    Object.entries(row.holidays || {}).forEach(([country, list]) => {
+      localStorage.setItem(holKey(row.year, country), JSON.stringify(list));
+    });
+  });
+
+  if (prof) {
+    if (Array.isArray(prof.categories) && prof.categories.length) {
+      localStorage.setItem('bac-categories', JSON.stringify(prof.categories));
+    }
+    if (prof.setup_year) localStorage.setItem('bac-setup-year', String(prof.setup_year));
+  }
+
+  localStorage.setItem('bac-cache-user', currentUser.id);
+}
+
+// ── Auth UI ──────────────────────────────────────────────────
+let authMode = 'signin';
+
+const $gate    = document.getElementById('auth-gate');
+const $form    = document.getElementById('auth-form');
+const $booting = document.getElementById('auth-booting');
+const $toggle  = document.getElementById('auth-toggle');
+const $err     = document.getElementById('auth-err');
+const $note    = document.getElementById('auth-note');
+const $submit  = document.getElementById('auth-submit');
+
+function authError(msg) {
+  $err.textContent = msg;
+  $err.classList.remove('hidden');
+  $note.classList.add('hidden');
+}
+
+function authNote(msg) {
+  $note.textContent = msg;
+  $note.classList.remove('hidden');
+  $err.classList.add('hidden');
+}
+
+function clearAuthMsgs() {
+  $err.classList.add('hidden');
+  $note.classList.add('hidden');
+}
+
+function showAuthForm() {
+  $booting.classList.add('hidden');
+  $form.classList.remove('hidden');
+  $toggle.classList.remove('hidden');
+  $gate.classList.remove('hidden');
+}
+
+function setAuthMode(mode) {
+  authMode = mode;
+  const signup = mode === 'signup';
+  document.getElementById('auth-sub').textContent =
+    signup ? 'Create an account to save your plan' : 'Sign in to reach your plan';
+  $submit.textContent = signup ? 'Create account' : 'Sign in';
+  document.getElementById('auth-toggle-txt').textContent =
+    signup ? 'Already have an account?' : 'New here?';
+  document.getElementById('auth-toggle-btn').textContent =
+    signup ? 'Sign in' : 'Create an account';
+  document.getElementById('auth-password').setAttribute(
+    'autocomplete', signup ? 'new-password' : 'current-password'
+  );
+  clearAuthMsgs();
+}
+
+document.getElementById('auth-toggle-btn').addEventListener('click', () => {
+  setAuthMode(authMode === 'signin' ? 'signup' : 'signin');
+});
+
+$form.addEventListener('submit', async e => {
+  e.preventDefault();
+  clearAuthMsgs();
+
+  const email    = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+
+  $submit.disabled = true;
+  $submit.textContent = authMode === 'signup' ? 'Creating…' : 'Signing in…';
+
+  try {
+    const { data, error } = authMode === 'signup'
+      ? await sb.auth.signUp({ email, password })
+      : await sb.auth.signInWithPassword({ email, password });
+
+    if (error) throw error;
+
+    // With email confirmation ON, signUp returns a user but no session.
+    if (authMode === 'signup' && !data.session) {
+      authNote('Check your email to confirm your account, then sign in.');
+      setAuthMode('signin');
+      return;
+    }
+    // onAuthStateChange takes it from here.
+  } catch (err) {
+    authError(friendlyAuthError(err));
+  } finally {
+    $submit.disabled = false;
+    $submit.textContent = authMode === 'signup' ? 'Create account' : 'Sign in';
+  }
+});
+
+function friendlyAuthError(err) {
+  const m = (err && err.message ? err.message : String(err)).toLowerCase();
+  if (m.includes('invalid login'))       return 'That email and password combination is not right.';
+  if (m.includes('already registered'))  return 'An account with that email already exists — sign in instead.';
+  if (m.includes('password'))            return 'Password must be at least 8 characters.';
+  if (m.includes('email'))               return 'Please enter a valid email address.';
+  if (m.includes('fetch') || m.includes('network'))
+    return 'Could not reach the server. Check your connection and try again.';
+  return err && err.message ? err.message : 'Something went wrong. Please try again.';
+}
+
+document.getElementById('signout-btn').addEventListener('click', async () => {
+  if (_dirtyYears.size || _dirtyProfile) await flushSync();
+  await sb.auth.signOut();
+});
+
+// ── Boot ─────────────────────────────────────────────────────
 setZoom(1);
-renderLegend();
-renderCatSelect();
 
-// Restore last-used year
-const _savedY = localStorage.getItem('bac-setup-year');
-if (_savedY && +_savedY >= YEAR_MIN && +_savedY <= YEAR_MAX) curYear = +_savedY;
+let _booted = false;
 
-updateYearNav();
-renderCalendar();
+async function startApp(user) {
+  currentUser = user;
+  const $email = document.getElementById('acct-email');
+  $email.textContent = (user.email || '').split('@')[0];   // keep the header compact
+  $email.title = user.email || '';
+
+  $booting.textContent = 'Loading your plan…';
+  $booting.classList.remove('hidden');
+  $form.classList.add('hidden');
+  $toggle.classList.add('hidden');
+
+  try {
+    await hydrateFromCloud();
+  } catch (err) {
+    console.error('[sync] load failed:', err);
+    authError('Could not load your plan. Check your connection and reload.');
+    showAuthForm();
+    currentUser = null;
+    return;
+  }
+
+  loadCategories();
+  loadAll();
+  renderLegend();
+  renderCatSelect();
+
+  const savedY = localStorage.getItem('bac-setup-year');
+  curYear = (savedY && +savedY >= YEAR_MIN && +savedY <= YEAR_MAX) ? +savedY : 2026;
+
+  updateYearNav();
+  renderCalendar();
+  setSyncStatus('saved');
+
+  $gate.classList.add('hidden');
+  _booted = true;
+}
+
+sb.auth.onAuthStateChange((event, session) => {
+  if (session && session.user) {
+    if (!_booted) startApp(session.user);
+    return;
+  }
+
+  currentUser = null;
+  _booted = false;
+
+  // Only wipe the cache on a genuine sign-out, so one person's plan is never
+  // left behind for the next. On INITIAL_SESSION (nobody signed in yet) the
+  // cache may hold a plan built before accounts existed — that is the data
+  // hydrateFromCloud() migrates into a new account, so it must survive.
+  if (event === 'SIGNED_OUT') {
+    clearLocalCache();
+    allEvents = {};
+  }
+
+  document.getElementById('acct-email').textContent = '';
+  setAuthMode('signin');
+  showAuthForm();
+});
 </script>
 </body>
 </html>
