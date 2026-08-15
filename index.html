@@ -1817,6 +1817,7 @@ function buildGrid() {
       const { year: sy, month: sm, day: sd } = parseDate(ev.startDate);
       const { year: ey, month: em, day: ed } = parseDate(evEnd);
       if (ev.endDate && ev.endDate !== ev.startDate) {
+        if (barMonth.get(ev) !== pm) continue;   // drawn in its dominant month only
         pBars.push({ s: (sm === pm && sy === curYear) ? sd : 1,
                      e: (em === pm && ey === curYear) ? ed : pdim });
       } else {
@@ -1864,6 +1865,7 @@ function buildGrid() {
       const { year: ey, month: em, day: ed } = parseDate(evEnd);
 
       if (ev.endDate && ev.endDate !== ev.startDate) {
+        if (barMonth.get(ev) !== m) continue;    // drawn in its dominant month only
         const bs = (sm === m && sy === curYear) ? sd : 1;
         const be = (em === m && ey === curYear) ? ed : dim;
         // The block is drawn in every month it covers, so the real span stays
