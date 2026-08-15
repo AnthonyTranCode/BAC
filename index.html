@@ -1441,7 +1441,7 @@
 
     <div class="form-row">
       <div class="fld">
-        <label>Dates <span class="fld-hint">Click a day, or drag across days for a trip</span></label>
+        <label>Dates <span class="fld-hint">Click the first day, then the last — or drag across them</span></label>
         <div class="dp">
           <div class="dp-head">
             <button type="button" class="dp-nav" id="dp-prev" aria-label="Previous month">
@@ -2125,10 +2125,15 @@ function fitChips() {
 let dpYear = 2026, dpMonth = 0;   // month on display
 let dpStart = null, dpEnd = null; // selection, always start <= end
 let dpDragging = false, dpAnchor = null;
+let dpPhase = 'end';   // 'end' = next pick closes the range; 'start' = it begins a new one
 
 function dpOpen(startDate, endDate) {
   dpStart = startDate;
   dpEnd   = endDate || startDate;
+  dpAnchor = dpStart;
+  // A single day is already a usable start, so the next pick sets the end date.
+  // A range that's already complete starts over on the next pick.
+  dpPhase = (dpEnd === dpStart) ? 'end' : 'start';
   const p = parseDate(dpStart);
   dpYear = p.year; dpMonth = p.month;
   dpSync();
@@ -2150,6 +2155,20 @@ function dpSet(a, b) {
   dpPaint();
   dpSummary();
   document.getElementById('date-err').classList.add('hidden');
+}
+
+// One pick, from the mouse or the keyboard. The first pick sets the start and
+// then leaves it alone; the second closes the range against it. A pick that
+// lands before the start can't be an end date, so it begins a new range.
+function dpPick(ds) {
+  if (dpPhase === 'end' && dpAnchor && dateInt(ds) >= dateInt(dpAnchor)) {
+    dpSet(dpAnchor, ds);
+    dpPhase = 'start';
+    return;
+  }
+  dpAnchor = ds;
+  dpSet(ds, ds);
+  dpPhase = 'end';
 }
 
 function dpShiftMonth(delta) {
@@ -2202,16 +2221,24 @@ function dpRender() {
 }
 
 // Apply selection classes without rebuilding the grid — this runs on every
-// mouse move during a drag.
-function dpPaint() {
+// mouse move during a drag. `previewEnd` shades the range the pending second
+// pick would produce; the committed selection stays untouched until the click.
+function dpPaint(previewEnd) {
+  const preview = previewEnd && dpAnchor && dateInt(previewEnd) >= dateInt(dpAnchor);
+  const from = preview ? dpAnchor  : dpStart;
+  const to   = preview ? previewEnd : dpEnd;
+
   document.querySelectorAll('.dp-day').forEach(btn => {
     const ds = btn.dataset.date;
-    const inRange = dpStart && dpEnd &&
-                    dateInt(ds) >= dateInt(dpStart) && dateInt(ds) <= dateInt(dpEnd);
+    const inRange = from && to &&
+                    dateInt(ds) >= dateInt(from) && dateInt(ds) <= dateInt(to);
     btn.classList.toggle('in-range',    !!inRange);
-    btn.classList.toggle('range-start', ds === dpStart);
-    btn.classList.toggle('range-end',   ds === dpEnd);
-    btn.setAttribute('aria-selected', String(!!inRange));
+    btn.classList.toggle('range-start', ds === from);
+    btn.classList.toggle('range-end',   ds === to);
+    // Screen readers hear the real selection, never the hover preview.
+    btn.setAttribute('aria-selected', String(
+      !!(dpStart && dpEnd &&
+         dateInt(ds) >= dateInt(dpStart) && dateInt(ds) <= dateInt(dpEnd))));
   });
 }
 
@@ -2236,7 +2263,11 @@ function dpSummary() {
     ? '<button type="button" class="dp-clear" id="dp-single">Make single day</button>' : '');
 
   const single = document.getElementById('dp-single');
-  if (single) single.addEventListener('click', () => dpSet(dpStart, dpStart));
+  if (single) single.addEventListener('click', () => {
+    dpSet(dpStart, dpStart);
+    dpAnchor = dpStart;    // back to one day: the next pick sets the end again
+    dpPhase  = 'end';
+  });
 }
 
 function dateInt2ms(ds) {
@@ -2254,22 +2285,29 @@ function dateInt2ms(ds) {
     e.preventDefault();                     // don't start a text selection
     if (e.shiftKey && dpStart) {            // shift-click extends across months
       dpSet(dpAnchor || dpStart, btn.dataset.date);
+      dpPhase = 'start';                    // the range is closed
       return;
     }
     dpDragging = true;
-    dpAnchor   = btn.dataset.date;
-    dpSet(dpAnchor, dpAnchor);
+    dpPick(btn.dataset.date);
   });
 
   grid.addEventListener('mouseover', e => {
-    if (!dpDragging) return;
     const btn = e.target.closest('.dp-day');
     if (!btn || btn.disabled) return;
-    dpSet(dpAnchor, btn.dataset.date);
+    if (dpDragging) dpSet(dpAnchor, btn.dataset.date);
+    else if (dpPhase === 'end') dpPaint(btn.dataset.date);   // preview only
   });
 
+  // Drop the preview when the pointer leaves the calendar.
+  grid.addEventListener('mouseleave', () => { if (!dpDragging) dpPaint(); });
+
   // Ends the drag even if the pointer leaves the picker.
-  document.addEventListener('mouseup', () => { dpDragging = false; });
+  document.addEventListener('mouseup', () => {
+    // A drag across more than one day closes the range on its own.
+    if (dpDragging && dpStart !== dpEnd) dpPhase = 'start';
+    dpDragging = false;
+  });
 
   document.getElementById('dp-prev').addEventListener('click', () => dpShiftMonth(-1));
   document.getElementById('dp-next').addEventListener('click', () => dpShiftMonth(1));
@@ -2291,7 +2329,7 @@ function dateInt2ms(ds) {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       if (e.shiftKey && dpAnchor) dpSet(dpAnchor, btn.dataset.date);
-      else { dpAnchor = btn.dataset.date; dpSet(dpAnchor, dpAnchor); }
+      else dpPick(btn.dataset.date);
     }
   });
 })();
