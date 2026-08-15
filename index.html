@@ -181,6 +181,14 @@
     .export-btn:hover { opacity: .9; }
     .export-btn:disabled { opacity: .5; cursor: default; }
 
+    /* While exporting, strip the interactive chrome so the saved image is
+       just the planner: title, legend and grid. Applied to the html2canvas
+       clone, and briefly to the live page only to measure the shorter header. */
+    body.exporting .header-controls,
+    body.exporting .zoom-bar,
+    body.exporting .size-panel,
+    body.exporting #toast { display: none !important; }
+
     /* ─── Legend ─────────────────────────────────────── */
     .legend {
       display: grid;
@@ -2361,11 +2369,15 @@ function exportPNG() {
   const scaler    = document.getElementById('page-scaler');
   scaler.style.zoom = 1;
 
-  // Measure at zoom = 1
+  // Measure at zoom = 1, with the chrome hidden so the header height matches
+  // what actually gets drawn. Removed again before anything can paint, so the
+  // live page never visibly flickers.
   const pageHeader = document.getElementById('page-header');
   const calWrap    = document.getElementById('cal-wrap');
+  document.body.classList.add('exporting');
   const totalW     = Math.max(pageHeader.scrollWidth, calWrap.scrollWidth);
   const totalH     = pageHeader.offsetHeight + calWrap.scrollHeight;
+  document.body.classList.remove('exporting');
 
   const pageBg = getComputedStyle(document.body).backgroundColor || '#ffffff';
 
@@ -2379,7 +2391,8 @@ function exportPNG() {
     scrollX: 0,
     scrollY: 0,
     windowWidth:  totalW,
-    windowHeight: totalH
+    windowHeight: totalH,
+    onclone: doc => doc.body.classList.add('exporting')
   }).then(canvas => {
     const a = document.createElement('a');
     a.download = `year-planner-${curYear}.png`;
