@@ -825,6 +825,16 @@
     }
     .auth-note.hidden { display: none; }
 
+    .auth-forgot { margin-top: 12px; text-align: center; }
+    .auth-forgot.hidden { display: none; }
+    .auth-forgot button {
+      background: none; border: none; padding: 0;
+      font-family: var(--font); font-size: 12px;
+      color: var(--muted-foreground); cursor: pointer;
+      text-decoration: underline; text-underline-offset: 2px;
+    }
+    .auth-forgot button:hover { color: var(--foreground); }
+
     .auth-toggle {
       margin-top: 18px; text-align: center;
       font-size: 12px; color: var(--muted-foreground);
@@ -872,16 +882,24 @@
       <div class="auth-err  hidden" id="auth-err"></div>
       <div class="auth-note hidden" id="auth-note"></div>
 
-      <label class="auth-lbl" for="auth-email">Email</label>
-      <input class="auth-input" type="email" id="auth-email"
-             required autocomplete="email" autocapitalize="off" spellcheck="false" />
+      <div id="auth-field-email">
+        <label class="auth-lbl" for="auth-email">Email</label>
+        <input class="auth-input" type="email" id="auth-email"
+               required autocomplete="email" autocapitalize="off" spellcheck="false" />
+      </div>
 
-      <label class="auth-lbl" for="auth-password">Password</label>
-      <input class="auth-input" type="password" id="auth-password"
-             required minlength="8" autocomplete="current-password" />
+      <div id="auth-field-password">
+        <label class="auth-lbl" for="auth-password">Password</label>
+        <input class="auth-input" type="password" id="auth-password"
+               required minlength="8" autocomplete="current-password" />
+      </div>
 
       <button class="auth-btn" type="submit" id="auth-submit">Sign in</button>
     </form>
+
+    <div class="auth-forgot hidden" id="auth-forgot">
+      <button type="button" id="auth-forgot-btn">Forgot your password?</button>
+    </div>
 
     <div class="auth-toggle hidden" id="auth-toggle">
       <span id="auth-toggle-txt">New here?</span>
@@ -2396,24 +2414,65 @@ function showAuthForm() {
   $gate.classList.remove('hidden');
 }
 
+const AUTH_MODES = {
+  signin: {
+    sub: 'Sign in to reach your plan', submit: 'Sign in', busy: 'Signing in…',
+    email: true, password: true, forgot: true, toggle: true,
+    toggleTxt: 'New here?', toggleBtn: 'Create an account',
+    autocomplete: 'current-password',
+  },
+  signup: {
+    sub: 'Create an account to save your plan', submit: 'Create account', busy: 'Creating…',
+    email: true, password: true, forgot: false, toggle: true,
+    toggleTxt: 'Already have an account?', toggleBtn: 'Sign in',
+    autocomplete: 'new-password',
+  },
+  reset: {
+    sub: 'We\'ll email you a link to set a new password', submit: 'Send reset link', busy: 'Sending…',
+    email: true, password: false, forgot: false, toggle: true,
+    toggleTxt: 'Remembered it?', toggleBtn: 'Back to sign in',
+    autocomplete: 'current-password',
+  },
+  newpassword: {
+    sub: 'Choose a new password', submit: 'Set new password', busy: 'Saving…',
+    email: false, password: true, forgot: false, toggle: false,
+    toggleTxt: '', toggleBtn: '',
+    autocomplete: 'new-password',
+  },
+};
+
 function setAuthMode(mode) {
   authMode = mode;
-  const signup = mode === 'signup';
-  document.getElementById('auth-sub').textContent =
-    signup ? 'Create an account to save your plan' : 'Sign in to reach your plan';
-  $submit.textContent = signup ? 'Create account' : 'Sign in';
-  document.getElementById('auth-toggle-txt').textContent =
-    signup ? 'Already have an account?' : 'New here?';
-  document.getElementById('auth-toggle-btn').textContent =
-    signup ? 'Sign in' : 'Create an account';
-  document.getElementById('auth-password').setAttribute(
-    'autocomplete', signup ? 'new-password' : 'current-password'
-  );
+  const m = AUTH_MODES[mode];
+
+  document.getElementById('auth-sub').textContent = m.sub;
+  $submit.textContent = m.submit;
+
+  // A hidden field that is still `required` blocks submission entirely and
+  // throws "not focusable" — the attribute has to move with the visibility.
+  [['auth-field-email', 'auth-email', m.email],
+   ['auth-field-password', 'auth-password', m.password]].forEach(([wrap, input, shown]) => {
+    document.getElementById(wrap).classList.toggle('hidden', !shown);
+    const el = document.getElementById(input);
+    if (shown) el.setAttribute('required', '');
+    else       el.removeAttribute('required');
+  });
+
+  document.getElementById('auth-password').setAttribute('autocomplete', m.autocomplete);
+  document.getElementById('auth-forgot').classList.toggle('hidden', !m.forgot);
+  document.getElementById('auth-toggle').classList.toggle('hidden', !m.toggle);
+  document.getElementById('auth-toggle-txt').textContent = m.toggleTxt;
+  document.getElementById('auth-toggle-btn').textContent = m.toggleBtn;
+
   clearAuthMsgs();
 }
 
 document.getElementById('auth-toggle-btn').addEventListener('click', () => {
   setAuthMode(authMode === 'signin' ? 'signup' : 'signin');
+});
+
+document.getElementById('auth-forgot-btn').addEventListener('click', () => {
+  setAuthMode('reset');
 });
 
 $form.addEventListener('submit', async e => {
@@ -2423,20 +2482,44 @@ $form.addEventListener('submit', async e => {
   const email    = document.getElementById('auth-email').value.trim();
   const password = document.getElementById('auth-password').value;
 
+  const mode = authMode;
   $submit.disabled = true;
-  $submit.textContent = authMode === 'signup' ? 'Creating…' : 'Signing in…';
+  $submit.textContent = AUTH_MODES[mode].busy;
 
   try {
-    const { data, error } = authMode === 'signup'
+    if (mode === 'reset') {
+      const { error } = await sb.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + window.location.pathname,
+      });
+      if (error) throw error;
+      // Deliberately the same message whether or not the address is registered,
+      // so this form can't be used to discover who has an account.
+      setAuthMode('signin');
+      authNote('If that email has an account, a reset link is on its way.');
+      return;
+    }
+
+    if (mode === 'newpassword') {
+      const { error } = await sb.auth.updateUser({ password });
+      if (error) throw error;
+      _recovering = false;
+      const { data: { session } } = await sb.auth.getSession();
+      if (session && session.user) { await startApp(session.user); return; }
+      setAuthMode('signin');
+      authNote('Password updated. Please sign in.');
+      return;
+    }
+
+    const { data, error } = mode === 'signup'
       ? await sb.auth.signUp({ email, password })
       : await sb.auth.signInWithPassword({ email, password });
 
     if (error) throw error;
 
     // With email confirmation ON, signUp returns a user but no session.
-    if (authMode === 'signup' && !data.session) {
-      authNote('Check your email to confirm your account, then sign in.');
+    if (mode === 'signup' && !data.session) {
       setAuthMode('signin');
+      authNote('Check your email to confirm your account, then sign in.');
       return;
     }
     // onAuthStateChange takes it from here.
@@ -2444,7 +2527,8 @@ $form.addEventListener('submit', async e => {
     authError(friendlyAuthError(err));
   } finally {
     $submit.disabled = false;
-    $submit.textContent = authMode === 'signup' ? 'Create account' : 'Sign in';
+    // authMode may have changed above; label the button for the mode now showing.
+    $submit.textContent = AUTH_MODES[authMode].submit;
   }
 });
 
@@ -2452,6 +2536,13 @@ function friendlyAuthError(err) {
   const m = (err && err.message ? err.message : String(err)).toLowerCase();
   if (m.includes('invalid login'))       return 'That email and password combination is not right.';
   if (m.includes('already registered'))  return 'An account with that email already exists — sign in instead.';
+  if (m.includes('should be different')) return 'That is your current password — pick a different one.';
+  if (m.includes('expired') || m.includes('invalid token') || m.includes('token has'))
+    return 'That reset link has expired. Request a new one.';
+  if (m.includes('rate limit') || m.includes('too many'))
+    return 'Too many attempts. Please wait a minute and try again.';
+  if (m.includes('weak') || m.includes('at least'))
+    return 'Password must be at least 8 characters.';
   if (m.includes('password'))            return 'Password must be at least 8 characters.';
   if (m.includes('email'))               return 'Please enter a valid email address.';
   if (m.includes('fetch') || m.includes('network'))
@@ -2467,9 +2558,13 @@ document.getElementById('signout-btn').addEventListener('click', async () => {
 // ── Boot ─────────────────────────────────────────────────────
 setZoom(1);
 
-let _booted = false;
+let _booted     = false;
+let _booting    = false;   // guards against overlapping hydrations from duplicate auth events
+let _recovering = false;   // true between clicking a reset link and setting the new password
 
 async function startApp(user) {
+  if (_booting || _booted) return;   // auth events can arrive twice; hydrate once
+  _booting = true;
   currentUser = user;
   const $email = document.getElementById('acct-email');
   $email.textContent = (user.email || '').split('@')[0];   // keep the header compact
@@ -2487,6 +2582,7 @@ async function startApp(user) {
     authError('Could not load your plan. Check your connection and reload.');
     showAuthForm();
     currentUser = null;
+    _booting = false;          // let them retry
     return;
   }
 
@@ -2507,13 +2603,26 @@ async function startApp(user) {
 }
 
 sb.auth.onAuthStateChange((event, session) => {
+  // Arriving from a reset email: Supabase hands us a valid session, but the
+  // point is to set a new password — not to walk straight into the app.
+  if (event === 'PASSWORD_RECOVERY') {
+    _recovering = true;
+    history.replaceState(null, '', window.location.pathname);  // strip token from URL
+    setAuthMode('newpassword');
+    showAuthForm();
+    authNote('Enter a new password for your account.');
+    return;
+  }
+
   if (session && session.user) {
-    if (!_booted) startApp(session.user);
+    if (_recovering || _booted) return;
+    startApp(session.user);
     return;
   }
 
   currentUser = null;
-  _booted = false;
+  _booted  = false;
+  _booting = false;
 
   // Only wipe the cache on a genuine sign-out, so one person's plan is never
   // left behind for the next. On INITIAL_SESSION (nobody signed in yet) the
