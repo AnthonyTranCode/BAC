@@ -1696,6 +1696,12 @@ function renderCalendar() {
             startChipDrag(e, ev, chip, dateStr);
           });
 
+          // The chip sits inside the day cell, so its click would bubble up and
+          // hit the cell's "add event" handler — replacing the edit dialog that
+          // the chip's own mouseup just opened. Holiday chips have no handler of
+          // their own and are left to bubble on purpose.
+          chip.addEventListener('click', e => e.stopPropagation());
+
           // Right resize handle — extend to multi-day
           const rh = document.createElement('div');
           rh.className = 'chip-resize-handle';
