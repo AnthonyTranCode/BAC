@@ -1337,7 +1337,6 @@
     }
     .lp-pitch { display: flex; flex-direction: column; gap: 12px; padding-bottom: 6px; }
     .lp-sub  { margin: 0; font-size: 18px; line-height: 1.5; }
-    .lp-note { margin: 0; font-size: 14px; color: var(--muted-foreground); }
     .lp-fine { margin: 0; font-size: 12px; color: var(--muted-foreground); }
 
     /* ── Panels ── */
@@ -1358,29 +1357,82 @@
     .lp-scene { transform-origin: 0 0; position: relative; }
     .lp-scene-inner { position: absolute; inset: 0; transform-origin: 0 0; }
 
-    /* ── Features ── */
-    .lp-features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
+    /* ── Story sections ── */
+    .lp-story {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 48px; align-items: center;
+      padding: 96px 8px;
+    }
+    .lp-story-flip { padding: 0 8px 96px; }
+    .lp-story-flip .lp-story-txt { justify-self: end; }
 
-    .lp-card {
+    .lp-story-txt { display: flex; flex-direction: column; gap: 16px; max-width: 480px; }
+    .lp-story-txt h2 {
+      margin: 0;
+      font-size: 36px; font-weight: var(--weight-medium);
+      letter-spacing: -0.02em; line-height: 1.15; text-wrap: pretty;
+    }
+    .lp-story-txt p {
+      margin: 0;
+      font-size: 18px; line-height: 1.5;
+      color: var(--muted-foreground); text-wrap: pretty;
+    }
+
+    .lp-story-art {
       background: var(--card);
       border-radius: var(--radius-2xl);
       box-shadow: var(--shadow-md);
-      padding: 24px;
-      display: flex; flex-direction: column; gap: 12px;
-      transition: box-shadow var(--duration, 200ms) var(--ease-standard);
+      padding: 24px; min-height: 280px;
+      display: flex; align-items: center; justify-content: center;
     }
-    .lp-card:hover { box-shadow: var(--shadow-lg); }
-    .lp-card svg { color: var(--foreground); }
-    .lp-card-ttl { font-size: 20px; font-weight: var(--weight-medium); letter-spacing: -0.01em; }
-    .lp-card-txt { font-size: 14px; line-height: 1.5; color: var(--muted-foreground); }
 
-    /* ── Manifesto ── */
-    .lp-manifesto { padding: 96px 8px; display: flex; justify-content: center; }
-    .lp-manifesto p {
-      margin: 0; max-width: 720px; text-align: center;
-      font-size: 30px; font-weight: var(--weight-medium);
-      letter-spacing: -0.01em; line-height: 1.35; text-wrap: pretty;
+    /* Biggest-stone-first: a fixed 360x220 composition, so it scales rather
+       than reflows when the card gets narrower than it is. */
+    .lp-stones {
+      position: relative; width: 360px; height: 220px; flex: none;
     }
+    .lp-stone {
+      position: absolute; border-radius: 4px;
+      opacity: 0; transform: translateY(-24px);
+      transition: opacity var(--duration-300, 300ms) var(--ease-standard),
+                  transform var(--duration-300, 300ms) var(--ease-standard);
+    }
+    .lp-stone.on { opacity: 1; transform: translateY(0); }
+    .lp-stone-mark {
+      position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+      width: 24px; height: 36px; background: #C8873B; opacity: 0;
+      transition: opacity var(--duration-300, 300ms) var(--ease-standard) 250ms;
+      -webkit-mask: url(assets/monolith-mark.png) center / contain no-repeat;
+              mask: url(assets/monolith-mark.png) center / contain no-repeat;
+    }
+    .lp-stone.on .lp-stone-mark { opacity: 1; }
+    .lp-ground {
+      position: absolute; left: 24px; right: 24px; top: 200px;
+      height: 1px; background: var(--border);
+    }
+
+    /* The wall card cycling through example monoliths. */
+    .lp-wall {
+      width: 280px; max-width: 100%; box-sizing: border-box;
+      background: var(--background);
+      border: 1px solid var(--border); border-radius: 4px;
+      box-shadow: var(--shadow-sm);
+      padding: 32px 40px;
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+    }
+    .lp-wall .lp-mark { width: 22px; height: 33px; }
+    .lp-wall-ttl {
+      font-size: 20px; font-weight: var(--weight-medium);
+      letter-spacing: -0.01em; white-space: nowrap;
+      transition: opacity var(--duration-200, 200ms) var(--ease-standard),
+                  transform var(--duration-200, 200ms) var(--ease-standard);
+    }
+    .lp-wall-yr {
+      font-size: 12px; color: var(--muted-foreground);
+      transition: opacity var(--duration-200, 200ms) var(--ease-standard);
+    }
+    .lp-wall.out .lp-wall-ttl { opacity: 0; transform: translateY(4px); }
+    .lp-wall.out .lp-wall-yr  { opacity: 0; }
 
     /* ── Closing CTA ── */
     .lp-closing {
@@ -1410,9 +1462,11 @@
     @media (max-width: 900px) {
       .lp-hero { grid-template-columns: 1fr; gap: 24px; align-items: start; padding: 32px 8px 8px; }
       .lp-headline { font-size: 52px; }
-      .lp-features { grid-template-columns: 1fr; gap: 16px; }
-      .lp-manifesto { padding: 56px 8px; }
-      .lp-manifesto p { font-size: 24px; }
+      .lp-story { grid-template-columns: 1fr; gap: 24px; padding: 56px 8px; }
+      .lp-story-flip { padding: 0 8px 56px; }
+      .lp-story-flip .lp-story-txt { justify-self: start; }
+      .lp-story-txt h2 { font-size: 28px; }
+      .lp-story-txt p { font-size: 16px; }
       .lp-closing { padding: 48px 20px; }
       .lp-closing-ttl { font-size: 28px; }
     }
@@ -1421,7 +1475,10 @@
       .lp-headline { font-size: 40px; }
       .lp-nav { flex-wrap: wrap; gap: 12px; }
       .lp-nav-actions { gap: 16px; }
-      .lp-manifesto p { font-size: 20px; }
+      .lp-story-art { padding: 16px; min-height: 240px; }
+      /* The stone composition is a fixed size; shrink it rather than clip. */
+      .lp-stones { transform: scale(0.78); }
+      .lp-wall { padding: 24px 20px; }
       .lp-closing-ttl { font-size: 24px; }
     }
 
@@ -1577,10 +1634,9 @@
     </nav>
 
     <header class="lp-hero">
-      <h1 class="lp-headline">One year.<br>One monolith.</h1>
+      <h1 class="lp-headline">Most years dissolve.</h1>
       <div class="lp-pitch">
-        <p class="lp-sub">The whole year on one page, organized around the one thing you'll actually remember.</p>
-        <p class="lp-note">Free while your year has under one monolith. Which it does.</p>
+        <p class="lp-sub">365 days of meetings, errands, and weekends that blur into one another. By December you can't say what happened.</p>
       </div>
     </header>
 
@@ -1588,26 +1644,24 @@
       <div class="lp-stage" id="lp-stage" aria-hidden="true"></div>
     </section>
 
-    <section class="lp-features">
-      <div class="lp-card">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/><path d="M15 3v18"/></svg>
-        <div class="lp-card-ttl">See the whole year</div>
-        <div class="lp-card-txt">Not a month at a time. All 365 days, at once, on a wall.</div>
+    <section class="lp-story">
+      <div class="lp-story-txt">
+        <h2>Place the biggest stone first.</h2>
+        <p>Then build the rest of the year around it. The errands, the appointments, the meetings, and the deadlines all arrange themselves once the big one is set.</p>
       </div>
-      <div class="lp-card">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><rect width="8" height="12" x="8" y="6" rx="1" fill="currentColor" stroke="none" opacity="0.15"/><rect width="8" height="12" x="8" y="6" rx="1"/></svg>
-        <div class="lp-card-ttl">Raise one monolith</div>
-        <div class="lp-card-txt">Choose one thing you might fail at. One per year — the constraint is the product.</div>
-      </div>
-      <div class="lp-card">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="m9 16 2 2 4-4"/></svg>
-        <div class="lp-card-ttl">Look back and see something</div>
-        <div class="lp-card-txt">By December the calendar is a record, not a plan.</div>
+      <div class="lp-story-art">
+        <div class="lp-stones" id="lp-stones" aria-hidden="true"></div>
       </div>
     </section>
 
-    <section class="lp-manifesto">
-      <p>Most years dissolve. A monolith is the thing that refuses to.</p>
+    <section class="lp-story lp-story-flip">
+      <div class="lp-story-art">
+        <div class="lp-wall" id="lp-wall" aria-hidden="true"></div>
+      </div>
+      <div class="lp-story-txt">
+        <h2>Finally, choose a monolith. One thing you'll tell people about.</h2>
+        <p>Choose a commitment big enough that no matter what else the year holds, that's the one you'll remember. Then hang it on a wall where you have to look at it.</p>
+      </div>
     </section>
 
     <section class="lp-panel lp-closing">
@@ -4800,17 +4854,143 @@ function stopAmbient() {
   _ambScene = null;
 }
 
+// ── Story: place the biggest stone first ─────────────────────
+// Ported from biggest-stone-first.jsx. The big ink stone lands, the smaller
+// ones settle around it, then it clears and runs again. CSS handles the
+// motion; the timer only advances which stones are in.
+const STONE_BIG    = { x: 140, y: 80, w: 80, h: 120, color: '#10100f' };
+const STONE_SMALL  = [
+  { x:  96, y: 156, w: 40, h: 44, color: '#0b59ea' },
+  { x: 224, y: 168, w: 52, h: 32, color: '#417713' },
+  { x:  48, y: 176, w: 44, h: 24, color: '#d33003' },
+  { x: 280, y: 176, w: 36, h: 24, color: '#f4da48' },
+  { x: 104, y: 124, w: 32, h: 28, color: '#88887c' },
+  { x: 224, y: 136, w: 36, h: 28, color: '#0b59ea' },
+];
+
+let _stoneTimer = null;
+
+function startStones() {
+  const host = document.getElementById('lp-stones');
+  if (!host || _stoneTimer !== null) return;
+  host.innerHTML = '';
+
+  const make = (r, isBig) => {
+    const el = document.createElement('div');
+    el.className = 'lp-stone';
+    Object.assign(el.style, {
+      left: r.x + 'px', top: r.y + 'px',
+      width: r.w + 'px', height: r.h + 'px', background: r.color,
+    });
+    if (isBig) {
+      const mark = document.createElement('div');
+      mark.className = 'lp-stone-mark';
+      el.appendChild(mark);
+    }
+    host.appendChild(el);
+    return el;
+  };
+
+  const big    = make(STONE_BIG, true);
+  const smalls = STONE_SMALL.map(r => make(r, false));
+  const ground = document.createElement('div');
+  ground.className = 'lp-ground';
+  host.appendChild(ground);
+
+  const last = STONE_SMALL.length + 1;        // step index of the final stone
+  const show = step => {
+    big.classList.toggle('on', step >= 1);
+    smalls.forEach((el, i) => el.classList.toggle('on', step >= i + 2));
+  };
+
+  // Beat lengths from the source: a breath on the empty frame, a longer hold
+  // after the big stone, then the full composition sits before it resets.
+  const run = step => {
+    show(step);
+    const wait = step === 0 ? 700 : step === 1 ? 1100 : step >= last ? 3200 : 480;
+    _stoneTimer = setTimeout(() => run(step >= last ? 0 : step + 1), wait);
+  };
+
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) { show(last); return; }
+  run(1);
+}
+
+function stopStones() {
+  if (_stoneTimer !== null) clearTimeout(_stoneTimer);
+  _stoneTimer = null;
+  const host = document.getElementById('lp-stones');
+  if (host) host.innerHTML = '';
+}
+
+// ── Story: the wall card ─────────────────────────────────────
+// Ported from monolith-wall-card.jsx — one example monolith per year, cycling.
+const WALL_MONOLITHS = [
+  { title: 'Vancouver Marathon',  year: '2027' },
+  { title: 'Ironman',             year: '2028' },
+  { title: 'Ultramarathon',       year: '2029' },
+  { title: 'Publish a book',      year: '2030' },
+  { title: 'Summit Kilimanjaro',  year: '2031' },
+  { title: 'Patagonia Trek',      year: '2032' },
+];
+
+let _wallTimer = null, _wallSwap = null;
+
+function startWallCard() {
+  const host = document.getElementById('lp-wall');
+  if (!host || _wallTimer !== null) return;
+  host.innerHTML = '';
+  host.classList.remove('out');
+
+  const mark = document.createElement('div');
+  mark.className = 'lp-mark';
+  const ttl = document.createElement('div');
+  ttl.className = 'lp-wall-ttl';
+  const yr = document.createElement('div');
+  yr.className = 'lp-wall-yr';
+  host.append(mark, ttl, yr);
+
+  let i = 0;
+  const paint = () => {
+    ttl.textContent = WALL_MONOLITHS[i].title;
+    yr.textContent  = WALL_MONOLITHS[i].year;
+  };
+  paint();
+
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  _wallTimer = setInterval(() => {
+    host.classList.add('out');                       // fade out, swap, fade in
+    _wallSwap = setTimeout(() => {
+      i = (i + 1) % WALL_MONOLITHS.length;
+      paint();
+      host.classList.remove('out');
+    }, 200);
+  }, 2600);
+}
+
+function stopWallCard() {
+  if (_wallTimer !== null) clearInterval(_wallTimer);
+  if (_wallSwap !== null)  clearTimeout(_wallSwap);
+  _wallTimer = _wallSwap = null;
+  const host = document.getElementById('lp-wall');
+  if (host) { host.innerHTML = ''; host.classList.remove('out'); }
+}
+
 function showLanding() {
   $landing.classList.remove('hidden');
   document.body.classList.add('chrome-off');
   $landing.scrollTop = 0;
   startAmbient();
+  startStones();
+  startWallCard();
 }
 
 function hideLanding() {
   $landing.classList.add('hidden');
   document.body.classList.remove('chrome-off');
   stopAmbient();
+  stopStones();
+  stopWallCard();
 }
 
 // Leaving the landing for the gate. The CTA reads as "start", so it opens the
