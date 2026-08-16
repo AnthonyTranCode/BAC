@@ -32,10 +32,10 @@
          geometry that has to clear it — is derived from this one multiplier,
          so the text-size slider only ever sets --text-scale. */
       --text-scale:  1;
-      --font-cell:   calc(8px  * var(--text-scale));   /* date headers, chips */
-      --font-bar:    calc(11px * var(--text-scale));   /* multi-day bars */
+      --font-cell:   calc(10px * var(--text-scale));   /* date headers, chips */
+      --font-bar:    calc(12px * var(--text-scale));   /* multi-day bars */
       --font-month:  calc(14px * var(--text-scale));   /* month labels */
-      --cell-hdr-h:  calc(11px * var(--text-scale));   /* rendered .cell-hdr height */
+      --cell-hdr-h:  calc(14px * var(--text-scale));   /* rendered .cell-hdr height */
       --track-h:     calc(28px * var(--text-scale));
       --bar-h:       calc(26px * var(--text-scale));
 
@@ -368,7 +368,7 @@
       cursor: grab;
       pointer-events: auto;
       letter-spacing: 0;
-      min-height: calc(13px * var(--text-scale));
+      min-height: calc(16px * var(--text-scale));
       flex: 1;
       display: flex;
       align-items: center;
@@ -1985,13 +1985,14 @@ function cellW() {
 // headers still sized for 8px.
 const TRACK_H_BASE    = 28;   // matches --track-h
 const BAR_H_BASE      = 26;   // matches --bar-h
-const CELL_HDR_H_BASE = 11;   // rendered .cell-hdr height (text + 3px padding + 1px border)
-const MIN_CHIP_H_BASE = 20;   // minimum readable chip height
+const CELL_HDR_H_BASE = 14;   // rendered .cell-hdr height (text + 3px padding + 1px border)
+const MIN_CHIP_H_BASE = 25;   // minimum readable chip height
 
 const trackH    = () => TRACK_H_BASE    * textScale;
 const barH      = () => BAR_H_BASE      * textScale;
 const cellHdrH  = () => CELL_HDR_H_BASE * textScale;
 const minChipH  = () => MIN_CHIP_H_BASE * textScale;
+
 
 const MONTHS  = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const MONTH_LG= ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -2000,6 +2001,18 @@ const DOW     = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const ZOOM_MIN  = 0.3;
 const ZOOM_MAX  = 2.5;
 const ZOOM_STEP = 0.1;
+// The smallest the grid's own text may end up on screen, in real pixels.
+// Fit multiplies the nominal size by its zoom, so without this a busy year
+// drove the dates and chip labels down to around 4px.
+const MIN_TEXT_PX  = 8;
+const BASE_TEXT_PX = 10;      // matches --font-cell at 100% text scale
+
+// How far Fit may zoom out before the text stops being legible. A fixed ratio,
+// deliberately not divided by the text scale: dividing would let Fit shrink
+// further exactly as far as the slider grew the type, so asking for bigger
+// text would land back on the same 8px and the slider would do nothing.
+// Held this way, 150% text means a 12px floor rather than an 8px one.
+const FIT_ZOOM_FLOOR = Math.max(ZOOM_MIN, MIN_TEXT_PX / BASE_TEXT_PX);
 
 // ── State ────────────────────────────────────────────────────
 let curYear    = 2026;
@@ -4087,12 +4100,12 @@ function fitToScreen() {
     const padY = parseFloat(wrap.paddingTop) + parseFloat(wrap.paddingBottom);
     const next = box.outerH / (12 * (needed + ROW_GAP) + padY);
 
-    // Below ZOOM_MIN the text stops being readable, so stop shrinking there and
+    // Past the floor the text stops being readable, so stop shrinking there and
     // let it scroll — but still fill the width and any height that is going
     // spare, rather than leaving the grid floating in the top-left.
-    if (next < ZOOM_MIN) {
-      setZoom(ZOOM_MIN, { keepFit: true });
-      const floorBox = fitBox(ZOOM_MIN);
+    if (next < FIT_ZOOM_FLOOR) {
+      setZoom(FIT_ZOOM_FLOOR, { keepFit: true });
+      const floorBox = fitBox(FIT_ZOOM_FLOOR);
       setColumnWidth(Math.max(1, (floorBox.w - FIT_EPS) / 31));
       buildGrid();
       applyRowHeight(Math.max(measureRequiredRowH(), (floorBox.h - FIT_EPS) / 12));
@@ -4112,7 +4125,7 @@ function fitToScreen() {
   // zoom by exactly that ratio rather than re-running the whole solve.
   const overflow = Math.max(outer.scrollWidth  / outer.clientWidth,
                             outer.scrollHeight / outer.clientHeight);
-  if (overflow > 1.001 && curZoom / overflow >= ZOOM_MIN) {
+  if (overflow > 1.001 && curZoom / overflow >= FIT_ZOOM_FLOOR) {
     setZoom(curZoom / overflow, { keepFit: true });
 
     // Re-fill against the now-larger effective viewport. Cells read --cell-w
