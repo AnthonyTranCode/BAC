@@ -453,11 +453,12 @@
       user-select: none;
     }
 
-    /* Sole occupant of its days: fill the row below the date header, matching
-       the space a single-day chip gets (1px above, 2px below). */
-    .ev-bar.ev-solo {
-      height:      calc(var(--row-h) - var(--cell-hdr-h) - 3px);
-      line-height: calc(var(--row-h) - var(--cell-hdr-h) - 3px);
+    /* Nothing below it: take the rest of the row, in the same space a
+       single-day chip gets (1px above, 2px below). --bar-top is how far down
+       the row the bar already sits, so a stacked bar fills only what is left. */
+    .ev-bar.ev-fill {
+      height:      calc(var(--row-h) - var(--cell-hdr-h) - var(--bar-top, 0px) - 3px);
+      line-height: calc(var(--row-h) - var(--cell-hdr-h) - var(--bar-top, 0px) - 3px);
     }
 
     .ev-bar:hover { opacity: .9; }
@@ -2436,13 +2437,14 @@ function buildGrid() {
     const evLyr = document.createElement('div');
     evLyr.className = 'ev-layer';
 
-    // A bar with nothing else in the days it covers takes the row's full
-    // height, the way a single-day chip does, rather than sitting as a thin
-    // strip with dead space beneath it. Anything sharing a day — another bar
-    // on a second track, an event chip, a holiday — puts it back to a strip.
-    const barIsSolo = bar => {
+    // The lowest bar over a stretch of days takes the space left under it,
+    // rather than sitting as a thin strip above dead cell. What matters is
+    // that nothing is below it: a bar on a lower track, an event chip or a
+    // holiday all need that room, so any of them keeps it a strip. Bars with
+    // something under them are unaffected, however few there are.
+    const barFillsDown = bar => {
       for (let d = bar.s; d <= bar.e; d++) {
-        if ((dayTracks[d] || 0) > 1)                       return false;
+        if ((dayTracks[d] || 0) > bar.track + 1)           return false;
         if (chipsByDay[d]?.length)                         return false;
         if (hMap[padDate(curYear, m, d)]?.length)          return false;
       }
@@ -2452,7 +2454,12 @@ function buildGrid() {
     for (const bar of trackedBars) {
       const barEl = document.createElement('div');
       barEl.className = `ev-bar cat-${bar.category}`;
-      if (barIsSolo(bar)) barEl.classList.add('ev-solo');
+      if (barFillsDown(bar)) {
+        barEl.classList.add('ev-fill');
+        // How far down the row this bar starts, so the CSS can work out what
+        // is left beneath it.
+        barEl.style.setProperty('--bar-top', (bar.track * trackH()) + 'px');
+      }
       barEl.style.left  = `calc(${bar.s - 1} * var(--cell-w) + 1px)`;
       barEl.style.width = `calc(${bar.e - bar.s + 1} * var(--cell-w) - 2px)`;
       barEl.style.top   = (bar.track * trackH() + 1) + 'px';
