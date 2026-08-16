@@ -4561,24 +4561,44 @@ const AMB = {
   W: 1920, GX: 250, CW: 1550 / 31, GY: 48, CH: 60,
   MONTHS: [31,28,31,30,31,30,31,31,30,31,30,31],
   MNAMES: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
-  MR: 5, MD: 9,                 // the monolith lands on June 10
   F: 3, M: 10, TOTAL: 13, HOLD: 10,
   CATS: ['#d33003', '#0b59ea', '#f4da48', '#417713', '#88887c'],
   OCHRE: '#C8873B',
 };
 AMB.H  = AMB.GY * 2 + 12 * AMB.CH;      // 816
+AMB.CELL_COUNT = AMB.MONTHS.reduce((a, b) => a + b, 0);   // 365
+// The window the original row-by-row sweep occupied, kept so the rest of the
+// timeline is untouched: first cell at 0.2s, last at 0.2 + 11*0.14 + 30*0.01.
+AMB.CELL_T0 = 0.2;
+AMB.CELL_T1 = 2.04;
 AMB.TD = AMB.M + 0.9;                   // the drop
-AMB.TX = AMB.GX + AMB.MD * AMB.CW;
-AMB.TY = AMB.GY + AMB.MR * AMB.CH;
 
 const clamp01       = v => v < 0 ? 0 : v > 1 ? 1 : v;
 const easeOutCubic  = t => 1 - Math.pow(1 - t, 3);
 const easeInCubic   = t => t * t * t;
 
-// Same LCG the design used, so a cycle's layout is reproducible from its seed.
-function ambChips(seed) {
+// Same LCG the design used, so a cycle is reproducible from its seed.
+function ambRandom(seed) {
   let s = seed >>> 0 || 1;
-  const rnd = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+  const next = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+  // An LCG's opening draws sit close to the seed, so nearby seeds open alike —
+  // enough that the landing month only ever came out Mar, Apr or May. Discard
+  // a few to let the state mix first.
+  for (let i = 0; i < 8; i++) next();
+  return next;
+}
+
+// Fisher-Yates, on whatever stream it's handed.
+function ambShuffle(arr, rnd) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// `mr`/`md` are the cell the monolith will take, kept clear of events.
+function ambChips(rnd, mr, md) {
   const taken = AMB.MONTHS.map(() => []);
   const chips = [];
   let guard = 0;
@@ -4587,23 +4607,26 @@ function ambChips(seed) {
     const len = rnd() < 0.7 ? 1 : (rnd() < 0.7 ? 2 : 3 + Math.floor(rnd() * 3));
     const d0  = Math.floor(rnd() * (AMB.MONTHS[mi] - len + 1));
     const d1  = d0 + len - 1;
-    if (mi === AMB.MR && d0 <= AMB.MD && d1 >= AMB.MD) continue;   // keep June 10 clear
+    if (mi === mr && d0 <= md && d1 >= md) continue;               // keep the landing clear
     if (taken[mi].some(([a, b]) => d0 <= b + 1 && d1 >= a - 1)) continue;
     taken[mi].push([d0, d1]);
     chips.push({ mi, d0, d1, col: AMB.CATS[Math.floor(rnd() * AMB.CATS.length)] });
   }
-  for (let i = chips.length - 1; i > 0; i--) {
-    const j = Math.floor(rnd() * (i + 1));
-    [chips[i], chips[j]] = [chips[j], chips[i]];
-  }
-  return chips;
+  return ambShuffle(chips, rnd);
 }
 
 let _ambRaf = null, _ambScene = null, _ambRO = null;
 
 function buildAmbScene(host, seed) {
   host.innerHTML = '';
-  const chips = ambChips(seed);
+  const rnd = ambRandom(seed);
+
+  // Where the monolith comes down. The design pinned this to June 10; drawing
+  // it per cycle means the landing isn't the one part of the loop you can
+  // predict. Picked before the chips so they can be kept off it.
+  const mr = Math.floor(rnd() * 12);
+  const md = Math.floor(rnd() * AMB.MONTHS[mr]);
+  const chips = ambChips(rnd, mr, md);
 
   const scene = document.createElement('div');
   scene.className = 'lp-scene';
@@ -4628,6 +4651,14 @@ function buildAmbScene(host, seed) {
     return { el, st: 0.2 + i * 0.14, dur: 0.4, done: false };
   });
 
+  // The grid's entrance order is reshuffled every cycle, so the calendar
+  // materialises differently each time round instead of repeating one sweep.
+  // The window is unchanged, so the cells are still all in before the chips
+  // start, and evenly spaced across it so the pace doesn't clump.
+  const slots = ambShuffle([...Array(AMB.CELL_COUNT).keys()], rnd);
+  const span  = (AMB.CELL_T1 - AMB.CELL_T0) / (AMB.CELL_COUNT - 1);
+  let slot = 0;
+
   const cells = [];
   for (let r = 0; r < 12; r++) {
     for (let c = 0; c < AMB.MONTHS[r]; c++) {
@@ -4643,7 +4674,7 @@ function buildAmbScene(host, seed) {
         opacity: '0', transform: 'translateX(-8px)',
       });
       inner.appendChild(el);
-      cells.push({ el, st: 0.2 + r * 0.14 + c * 0.01, dur: 0.35, done: false });
+      cells.push({ el, st: AMB.CELL_T0 + slots[slot++] * span, dur: 0.35, done: false });
     }
   }
 
@@ -4661,7 +4692,7 @@ function buildAmbScene(host, seed) {
 
   const tile = document.createElement('div');
   Object.assign(tile.style, {
-    position: 'absolute', left: px(AMB.TX + 3), top: px(AMB.TY + 3),
+    position: 'absolute', left: px(AMB.GX + md * AMB.CW + 3), top: px(AMB.GY + mr * AMB.CH + 3),
     width: px(AMB.CW - 6), height: px(AMB.CH - 6),
     background: 'var(--foreground)', borderRadius: '4px', opacity: '0',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
