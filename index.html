@@ -365,6 +365,9 @@
     /* ─── Single-day chips ──────────────────────────── */
     .chip {
       font: var(--weight-medium) var(--font-cell)/1 var(--font);
+      /* Set after the shorthand so it wins: --title-scale is the per-event
+         size, defaulting to 1 when the event doesn't carry one. */
+      font-size: calc(var(--font-cell) * var(--title-scale, 1));
       padding: 2px 4px;
       border-radius: var(--radius-md);
       overflow: hidden;
@@ -437,6 +440,7 @@
       height: var(--bar-h);
       border-radius: var(--radius-md);
       font: var(--weight-medium) var(--font-bar)/var(--bar-h) var(--font);
+      font-size: calc(var(--font-bar) * var(--title-scale, 1));
       /* line-height carries the vertical centring, so a taller bar has to
          restate it — and doing it this way keeps the ellipsis, which a flex
          container would lose. */
@@ -719,6 +723,8 @@
     .fld input:focus, .fld select:focus { border-color: var(--ring); box-shadow: 0 0 0 2px var(--popover), 0 0 0 4px var(--ring); }
 
     .fld-emoji { flex: none; position: relative; }
+    /* Sits beside Category, which keeps the wider half. */
+    .fld-tsize { flex: none; width: 150px; }
     .emoji-inp { font-size: 20px; text-align: center; width: 64px !important; flex: none; }
 
     /* 37px matches a .fld input: 9px padding twice + 14px/1.2 text + 2px border */
@@ -1932,8 +1938,17 @@
 
     <div class="form-row">
       <div class="fld">
-        <label>Category</label>
+        <label for="f-cat">Category</label>
         <select id="f-cat"><!-- populated by renderCatSelect() --></select>
+      </div>
+      <div class="fld fld-tsize">
+        <label for="f-tsize">Title size</label>
+        <select id="f-tsize">
+          <option value="0.85">Small</option>
+          <option value="1" selected>Normal</option>
+          <option value="1.3">Large</option>
+          <option value="1.6">Extra large</option>
+        </select>
       </div>
     </div>
 
@@ -2458,6 +2473,7 @@ function buildGrid() {
     for (const bar of trackedBars) {
       const barEl = document.createElement('div');
       barEl.className = `ev-bar cat-${bar.category}`;
+      applyTitleScale(barEl, bar);
       if (barFillsDown(bar)) {
         barEl.classList.add('ev-fill');
         // How far down the row this bar starts, so the CSS can work out what
@@ -2574,6 +2590,7 @@ function buildGrid() {
           const chip = document.createElement('div');
           chip.className = `chip cat-${ev.category}`;
           applyCatStyle(chip, ev.category);
+          applyTitleScale(chip, ev);
           chip.textContent = (ev.emoji ? ev.emoji + ' ' : '') + ev.title;
           chip.title = ev.title;
 
@@ -2648,11 +2665,19 @@ function growCellsToFitChips() {
   }
 }
 
+// Long unbroken titles can still overrun a chip's width; step them down until
+// they fit. The ladder starts from the chip's own rendered size rather than a
+// fixed 8px, since that size now moves with the text-size slider and with each
+// event's own title size — anchoring it to a constant would drop a 20px title
+// straight to 7.5px on the first overflow.
 function fitChips() {
   document.querySelectorAll('.chip').forEach(chip => {
-    chip.style.fontSize = '';
-    let size = 8;
-    while (chip.scrollWidth > chip.clientWidth && size > 4.5) {
+    chip.style.fontSize = '';                       // back to the CSS size
+    const base = parseFloat(getComputedStyle(chip).fontSize) || 10;
+    let size = base;
+    // The floor is relative to where this chip started rather than absolute,
+    // so a title set larger still comes out larger once both have been fitted.
+    while (chip.scrollWidth > chip.clientWidth && size > base * 0.55) {
       size -= 0.5;
       chip.style.fontSize = size + 'px';
     }
@@ -2888,6 +2913,7 @@ function openModal(dateStr, ev) {
 
   document.getElementById('f-title').value = ev?.title    || '';
   document.getElementById('f-cat').value   = ev?.category || 'adventures';
+  document.getElementById('f-tsize').value = String(ev?.titleScale || 1);
   closeEmojiPop(false);
   setEmoji(ev?.emoji || null);
   dpOpen(ev?.startDate || dateStr, ev?.endDate || null);
@@ -3090,6 +3116,9 @@ function saveEvent() {
   const end   = document.getElementById('f-end').value || null;
   const emoji = normalizeEmoji(document.getElementById('f-emoji').value);
   const cat   = document.getElementById('f-cat').value;
+  // Normal is the default, so it's stored as absent rather than as 1.
+  const tsize = parseFloat(document.getElementById('f-tsize').value);
+  const titleScale = tsize > 0 && tsize !== 1 ? tsize : null;
 
   let ok = true;
   if (!title) {
@@ -3124,7 +3153,7 @@ function saveEvent() {
   if (!allEvents[year]) allEvents[year] = [];
 
   const record = { id: editId || uid(), title, category: cat,
-                   startDate, endDate, emoji, repeat };
+                   startDate, endDate, emoji, titleScale, repeat };
 
   if (editId) {
     const idx = allEvents[year].findIndex(e => e.id === editId);
@@ -3221,7 +3250,8 @@ function startDrag(e, ev, mode, barEl) {
   dragState = {
     mode,
     ev:        { id: ev.id, title: ev.title, category: ev.category,
-                 startDate: ev.startDate, endDate: ev.endDate, emoji: ev.emoji },
+                 startDate: ev.startDate, endDate: ev.endDate, emoji: ev.emoji,
+                 titleScale: ev.titleScale },
     startX:    e.clientX,
     origStart: ev.startDate,
     origEnd:   ev.endDate || ev.startDate,
@@ -3643,6 +3673,13 @@ function isLight(hex) {
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
   return (r * 299 + g * 587 + b * 114) / 1000 > 155;
+}
+
+// Per-event title size, as a multiplier on whatever the calendar's own text
+// size currently is. Stored on the event; absent or 1 means leave it alone.
+function applyTitleScale(el, ev) {
+  const n = Number(ev?.titleScale);
+  if (n > 0 && n !== 1) el.style.setProperty('--title-scale', String(n));
 }
 
 function applyCatStyle(el, catId) {
