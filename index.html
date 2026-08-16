@@ -1249,9 +1249,9 @@
     .series-note.hidden { display: none; }
 
     /* ── Landing ───────────────────────────────────────────── */
-    /* Ported from the "Monolith Landing" design. The design's literal hexes
-       are the same Grain values the app already carries, so they're written
-       as tokens here and the page follows the theme for free. */
+    /* Ported from the "Monolith Landing v3" design. The design's literal
+       hexes are the same Grain values the app already carries, so they're
+       written as tokens here and the page follows the theme for free. */
     #landing {
       position: fixed; inset: 0; z-index: 150;
       overflow-y: auto;
@@ -1260,8 +1260,7 @@
       font-family: var(--font);
       padding: 24px;
       /* flex-start, not stretch: a stretched shell makes its column children
-         shrink to the viewport, and .lp-hero's overflow:hidden then eats the
-         headline and CTA instead of the page scrolling. */
+         shrink to the viewport instead of the page scrolling. */
       display: flex; justify-content: center; align-items: flex-start;
       --cta-hover: #272725;   /* design's button hover; no light token matches */
     }
@@ -1269,8 +1268,7 @@
     [data-theme="dark"] #landing { --cta-hover: var(--muted); }
 
     /* The calendar's floating controls are fixed-position and outrank both
-       overlays, so they're taken down until the planner itself is on screen.
-       (They used to float over the sign-in card too.) */
+       overlays, so they're taken down until the planner itself is on screen. */
     body.chrome-off .zoom-bar,
     body.chrome-off .size-panel,
     body.chrome-off #toast { display: none !important; }
@@ -1281,17 +1279,12 @@
     }
     .lp-shell > * { flex-shrink: 0; }
 
-    .lp-hero {
-      background: var(--card);
-      border-radius: var(--radius-2xl);
-      box-shadow: var(--shadow-md);
-      overflow: hidden;
+    /* ── Nav ── */
+    .lp-nav {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; padding: 8px 8px 0;
     }
-
-    .lp-hero-head {
-      padding: 32px 40px 0;
-      display: flex; align-items: center; justify-content: space-between; gap: 16px;
-    }
+    .lp-nav-actions { display: flex; align-items: center; gap: 24px; }
 
     .lp-wordmark { display: flex; align-items: center; gap: 12px; }
     .lp-mark {
@@ -1301,53 +1294,71 @@
       -webkit-mask: url(assets/monolith-mark.png) center / contain no-repeat;
               mask: url(assets/monolith-mark.png) center / contain no-repeat;
     }
+    .lp-mark-lg { width: 30px; height: 45px; }
     .lp-wordmark-txt {
       font-size: 16px; font-weight: var(--weight-medium); letter-spacing: -0.01em;
     }
 
     .lp-signin {
       background: none; border: none; padding: 0;
-      font: var(--weight-medium) 14px/1 var(--font);
-      color: var(--muted-foreground);
+      font: var(--weight-normal) 14px/1 var(--font);
+      color: var(--foreground);
       cursor: pointer;
       transition: color var(--duration, 200ms) var(--ease-standard);
     }
-    .lp-signin:hover { color: var(--foreground); }
+    .lp-signin:hover { color: var(--muted-foreground); }
     .lp-signin:focus-visible {
       outline: 2px solid var(--ring); outline-offset: 3px; border-radius: var(--radius-md);
     }
 
-    .lp-dots { display: block; width: 100%; height: 340px; margin-top: 8px; }
+    .lp-btn {
+      display: flex; align-items: center; justify-content: center;
+      height: 40px; padding: 0 20px;
+      font: var(--weight-medium) 14px/1 var(--font);
+      color: var(--primary-foreground); background: var(--primary);
+      border: none; border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      white-space: nowrap; cursor: pointer;
+      transition: background var(--duration, 200ms) var(--ease-standard);
+    }
+    .lp-btn:hover { background: var(--cta-hover); }
+    .lp-btn:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
 
-    .lp-hero-body {
+    /* ── Hero — on the page itself in v3, not in a card ── */
+    .lp-hero {
       display: grid; grid-template-columns: 1.2fr 1fr;
       gap: 48px; align-items: end;
-      padding: 8px 40px 48px;
+      padding: 48px 8px 16px;
     }
-
     .lp-headline {
       margin: 0;
       font-size: 72px; font-weight: var(--weight-medium);
       letter-spacing: -0.02em; line-height: 1.04; text-wrap: pretty;
     }
-
     .lp-pitch { display: flex; flex-direction: column; gap: 12px; padding-bottom: 6px; }
-    .lp-sub  { margin: 0; font-size: 18px; line-height: 1.5; color: var(--foreground); }
+    .lp-sub  { margin: 0; font-size: 18px; line-height: 1.5; }
+    .lp-note { margin: 0; font-size: 14px; color: var(--muted-foreground); }
     .lp-fine { margin: 0; font-size: 12px; color: var(--muted-foreground); }
 
-    .lp-cta {
-      display: flex; align-items: center; justify-content: center;
-      height: 44px; margin-top: 4px;
-      font: var(--weight-medium) 14px/1 var(--font);
-      color: var(--primary-foreground); background: var(--primary);
-      border: none; border-radius: var(--radius-md);
-      box-shadow: var(--shadow-sm);
-      cursor: pointer;
-      transition: background var(--duration, 200ms) var(--ease-standard);
+    /* ── Panels ── */
+    .lp-panel {
+      background: var(--card);
+      border-radius: var(--radius-2xl);
+      box-shadow: var(--shadow-md);
+      overflow: hidden;
     }
-    .lp-cta:hover { background: var(--cta-hover); }
-    .lp-cta:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
 
+    /* The ambient scene is authored at 1920x816 and scaled to whatever width
+       the card gives it, so the box just holds that ratio. */
+    .lp-stage {
+      width: 100%; aspect-ratio: 1920 / 816;
+      position: relative; overflow: hidden;
+      background: var(--card);
+    }
+    .lp-scene { transform-origin: 0 0; position: relative; }
+    .lp-scene-inner { position: absolute; inset: 0; transform-origin: 0 0; }
+
+    /* ── Features ── */
     .lp-features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
 
     .lp-card {
@@ -1356,11 +1367,33 @@
       box-shadow: var(--shadow-md);
       padding: 24px;
       display: flex; flex-direction: column; gap: 12px;
+      transition: box-shadow var(--duration, 200ms) var(--ease-standard);
     }
+    .lp-card:hover { box-shadow: var(--shadow-lg); }
     .lp-card svg { color: var(--foreground); }
     .lp-card-ttl { font-size: 20px; font-weight: var(--weight-medium); letter-spacing: -0.01em; }
     .lp-card-txt { font-size: 14px; line-height: 1.5; color: var(--muted-foreground); }
 
+    /* ── Manifesto ── */
+    .lp-manifesto { padding: 96px 8px; display: flex; justify-content: center; }
+    .lp-manifesto p {
+      margin: 0; max-width: 720px; text-align: center;
+      font-size: 30px; font-weight: var(--weight-medium);
+      letter-spacing: -0.01em; line-height: 1.35; text-wrap: pretty;
+    }
+
+    /* ── Closing CTA ── */
+    .lp-closing {
+      padding: 64px 24px;
+      display: flex; flex-direction: column; align-items: center; gap: 20px;
+    }
+    .lp-closing-ttl {
+      font-size: 36px; font-weight: var(--weight-medium);
+      letter-spacing: -0.02em; text-align: center; text-wrap: pretty;
+    }
+    .lp-closing .lp-btn { height: 44px; padding: 0 28px; }
+
+    /* ── Footer ── */
     .lp-foot {
       display: flex; align-items: center; justify-content: space-between;
       padding: 8px 8px 24px;
@@ -1372,19 +1405,24 @@
     }
     .lp-foot a:hover { color: var(--foreground); }
 
-    /* The design is drawn at 1280px. Below that the two grids would crush
-       rather than reflow, so they stack. */
+    /* The design is drawn at 1280px. Below that the grids would crush rather
+       than reflow, so they stack and the outsized type comes down. */
     @media (max-width: 900px) {
-      .lp-hero-body { grid-template-columns: 1fr; gap: 24px; align-items: start; }
-      .lp-headline  { font-size: 52px; }
-      .lp-features  { grid-template-columns: 1fr; gap: 16px; }
-      .lp-hero-head { padding: 24px 24px 0; }
-      .lp-hero-body { padding: 8px 24px 32px; }
-      .lp-dots      { height: 220px; }
+      .lp-hero { grid-template-columns: 1fr; gap: 24px; align-items: start; padding: 32px 8px 8px; }
+      .lp-headline { font-size: 52px; }
+      .lp-features { grid-template-columns: 1fr; gap: 16px; }
+      .lp-manifesto { padding: 56px 8px; }
+      .lp-manifesto p { font-size: 24px; }
+      .lp-closing { padding: 48px 20px; }
+      .lp-closing-ttl { font-size: 28px; }
     }
     @media (max-width: 560px) {
+      #landing { padding: 12px; }
       .lp-headline { font-size: 40px; }
-      #landing     { padding: 12px; }
+      .lp-nav { flex-wrap: wrap; gap: 12px; }
+      .lp-nav-actions { gap: 16px; }
+      .lp-manifesto p { font-size: 20px; }
+      .lp-closing-ttl { font-size: 24px; }
     }
 
     /* ── Auth gate ─────────────────────────────────────────── */
@@ -1527,25 +1565,27 @@
 <div id="landing" class="hidden">
   <div class="lp-shell">
 
-    <section class="lp-hero">
-      <div class="lp-hero-head">
-        <div class="lp-wordmark">
-          <div class="lp-mark" role="img" aria-label="Monolith"></div>
-          <div class="lp-wordmark-txt">Monolith</div>
-        </div>
+    <nav class="lp-nav">
+      <div class="lp-wordmark">
+        <div class="lp-mark" role="img" aria-label="Monolith"></div>
+        <div class="lp-wordmark-txt">Monolith</div>
+      </div>
+      <div class="lp-nav-actions">
         <button type="button" class="lp-signin" id="lp-signin">Sign in</button>
+        <button type="button" class="lp-btn lp-join">Raise your monolith</button>
       </div>
+    </nav>
 
-      <canvas id="lp-dots" class="lp-dots" aria-hidden="true"></canvas>
-
-      <div class="lp-hero-body">
-        <h1 class="lp-headline">One year.<br>One monolith.</h1>
-        <div class="lp-pitch">
-          <p class="lp-sub">The whole year on one page, organized around the one thing you'll actually remember.</p>
-          <button type="button" class="lp-cta" id="lp-cta">Raise your monolith</button>
-          <p class="lp-fine">One email a quarter. If there's nothing worth saying, we don't send.</p>
-        </div>
+    <header class="lp-hero">
+      <h1 class="lp-headline">One year.<br>One monolith.</h1>
+      <div class="lp-pitch">
+        <p class="lp-sub">The whole year on one page, organized around the one thing you'll actually remember.</p>
+        <p class="lp-note">Free while your year has under one monolith. Which it does.</p>
       </div>
+    </header>
+
+    <section class="lp-panel lp-product">
+      <div class="lp-stage" id="lp-stage" aria-hidden="true"></div>
     </section>
 
     <section class="lp-features">
@@ -1564,6 +1604,17 @@
         <div class="lp-card-ttl">Look back and see something</div>
         <div class="lp-card-txt">By December the calendar is a record, not a plan.</div>
       </div>
+    </section>
+
+    <section class="lp-manifesto">
+      <p>Most years dissolve. A monolith is the thing that refuses to.</p>
+    </section>
+
+    <section class="lp-panel lp-closing">
+      <div class="lp-mark lp-mark-lg" role="img" aria-label="Monolith"></div>
+      <div class="lp-closing-ttl">2027 is 365 days. Here they all are.</div>
+      <button type="button" class="lp-btn lp-join">Raise your monolith</button>
+      <p class="lp-fine">One email a quarter. If there's nothing worth saying, we don't send.</p>
     </section>
 
     <footer class="lp-foot">
@@ -4499,113 +4550,236 @@ function showAuthForm() {
 
 const $landing = document.getElementById('landing');
 
-// 5×7 bitmap font for the scrolling dot band, transcribed from the design.
-const DOT_GLYPHS = {
-  C:['.###.','#...#','#....','#....','#....','#...#','.###.'],
-  O:['.###.','#...#','#...#','#...#','#...#','#...#','.###.'],
-  M:['#...#','##.##','#.#.#','#.#.#','#...#','#...#','#...#'],
-  I:['#####','..#..','..#..','..#..','..#..','..#..','#####'],
-  T:['#####','..#..','..#..','..#..','..#..','..#..','..#..'],
-  B:['####.','#...#','#...#','####.','#...#','#...#','####.'],
-  U:['#...#','#...#','#...#','#...#','#...#','#...#','.###.'],
-  L:['#....','#....','#....','#....','#....','#....','#####'],
-  D:['####.','#...#','#...#','#...#','#...#','#...#','####.'],
-  F:['#####','#....','#....','####.','#....','#....','#....'],
-  N:['#...#','##..#','#.#.#','#..##','#...#','#...#','#...#'],
-  S:['.####','#....','#....','.###.','....#','....#','####.'],
-  H:['#...#','#...#','#...#','#####','#...#','#...#','#...#'],
-  E:['#####','#....','#....','####.','#....','#....','#####'],
-  R:['####.','#...#','#...#','####.','#.#..','#..#.','#...#'],
-  Y:['#...#','#...#','.#.#.','..#..','..#..','..#..','..#..'],
-  G:['.###.','#...#','#....','#.###','#...#','#...#','.###.'],
-  A:['.###.','#...#','#...#','#####','#...#','#...#','#...#'],
-  P:['####.','#...#','#...#','####.','#....','#....','#....'],
-  '.':['.....','.....','.....','.....','.....','.##..','.##..'],
-  ' ':['..','..','..','..','..','..','..'],
+// The hero's ambient scene, ported from the design's MonolithAmbient
+// component: a year grid draws itself, fills with events, then a monolith
+// drops onto June 10. Authored at 1920x816 and scaled to fit.
+//
+// React re-rendered all ~430 nodes every frame. Here the scene is built once
+// per cycle and only the nodes still in motion are touched — once a cell or
+// chip finishes its entrance it is left alone, so the long hold costs nothing.
+const AMB = {
+  W: 1920, GX: 250, CW: 1550 / 31, GY: 48, CH: 60,
+  MONTHS: [31,28,31,30,31,30,31,31,30,31,30,31],
+  MNAMES: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+  MR: 5, MD: 9,                 // the monolith lands on June 10
+  F: 3, M: 10, TOTAL: 13, HOLD: 10,
+  CATS: ['#d33003', '#0b59ea', '#f4da48', '#417713', '#88887c'],
+  OCHRE: '#C8873B',
 };
-const DOT_WORDS   = 'GOALS. TRIPS. YEAR. CALENDAR. ';
-const DOT_PALETTE = ['#C8873B', '#0b59ea', '#417713', '#f4da48', '#d33003'];
+AMB.H  = AMB.GY * 2 + 12 * AMB.CH;      // 816
+AMB.TD = AMB.M + 0.9;                   // the drop
+AMB.TX = AMB.GX + AMB.MD * AMB.CW;
+AMB.TY = AMB.GY + AMB.MR * AMB.CH;
 
-let _dotRaf = null;
+const clamp01       = v => v < 0 ? 0 : v > 1 ? 1 : v;
+const easeOutCubic  = t => 1 - Math.pow(1 - t, 3);
+const easeInCubic   = t => t * t * t;
 
-function startDotBand() {
-  const cv = document.getElementById('lp-dots');
-  if (!cv || _dotRaf !== null) return;
-
-  // One row of the marquee, as cell coordinates.
-  const cells = [];
-  let col = 0;
-  for (const ch of DOT_WORDS.toUpperCase() + ' ') {
-    const g = DOT_GLYPHS[ch] || DOT_GLYPHS[' '];
-    for (let r = 0; r < 7; r++)
-      for (let c = 0; c < g[r].length; c++)
-        if (g[r][c] === '#') cells.push({ c: col + c, r });
-    col += g[0].length + 1;
+// Same LCG the design used, so a cycle's layout is reproducible from its seed.
+function ambChips(seed) {
+  let s = seed >>> 0 || 1;
+  const rnd = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+  const taken = AMB.MONTHS.map(() => []);
+  const chips = [];
+  let guard = 0;
+  while (chips.length < 55 && guard++ < 500) {
+    const mi  = Math.floor(rnd() * 12);
+    const len = rnd() < 0.7 ? 1 : (rnd() < 0.7 ? 2 : 3 + Math.floor(rnd() * 3));
+    const d0  = Math.floor(rnd() * (AMB.MONTHS[mi] - len + 1));
+    const d1  = d0 + len - 1;
+    if (mi === AMB.MR && d0 <= AMB.MD && d1 >= AMB.MD) continue;   // keep June 10 clear
+    if (taken[mi].some(([a, b]) => d0 <= b + 1 && d1 >= a - 1)) continue;
+    taken[mi].push([d0, d1]);
+    chips.push({ mi, d0, d1, col: AMB.CATS[Math.floor(rnd() * AMB.CATS.length)] });
   }
-  const patternCols = col;
-
-  const hash = n => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
-  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const t0 = performance.now();
-
-  const draw = () => {
-    const dpr = window.devicePixelRatio || 1;
-    const w = cv.clientWidth, h = cv.clientHeight;
-    if (cv.width !== w * dpr) { cv.width = w * dpr; cv.height = h * dpr; }
-    const x = cv.getContext('2d');
-    x.setTransform(dpr, 0, 0, dpr, 0, 0);
-    x.clearRect(0, 0, w, h);
-
-    // Reduced motion gets the settled frame instead of the scroll.
-    const t = still ? 6 : (performance.now() - t0) / 1000;
-    const pitch = 13, sq = 7, rowH = 7 * pitch, rowGap = 22, top = 18;
-    const patW = patternCols * pitch;
-
-    for (let row = 0; row < 3; row++) {
-      const dir = row % 2 ? 1 : -1;
-      const off = ((t * 9 * dir) % patW + patW) % patW;
-      const stagger = row * patW * 0.37;
-      for (const cell of cells) {
-        for (let rep = -1; rep * patW < w + patW; rep++) {
-          const px = cell.c * pitch + rep * patW - off + stagger % patW;
-          if (px < -pitch || px > w) continue;
-          const id = cell.c * 7 + cell.r + row * 9973;
-          const a = Math.min(1, Math.max(0, (t - hash(id) * 2.2) / 0.5));
-          if (a <= 0) continue;
-          const h2 = hash(id + 5000);
-          const phase = (t * 0.22 + h2) % 1;
-          let color = '#dcdcd8', al = a;
-          if (phase < 0.045)      color = DOT_PALETTE[Math.floor(h2 * DOT_PALETTE.length)];
-          else if (phase < 0.09)  al = a * 0.45;
-          x.globalAlpha = al;
-          x.fillStyle = color;
-          x.fillRect(px, top + row * (rowH + rowGap) + cell.r * pitch, sq, sq);
-        }
-      }
-    }
-    x.globalAlpha = 1;
-    if (still) { _dotRaf = null; return; }   // one frame is the whole animation
-    _dotRaf = requestAnimationFrame(draw);
-  };
-  _dotRaf = requestAnimationFrame(draw);
+  for (let i = chips.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [chips[i], chips[j]] = [chips[j], chips[i]];
+  }
+  return chips;
 }
 
-function stopDotBand() {
-  if (_dotRaf !== null) cancelAnimationFrame(_dotRaf);
-  _dotRaf = null;
+let _ambRaf = null, _ambScene = null, _ambRO = null;
+
+function buildAmbScene(host, seed) {
+  host.innerHTML = '';
+  const chips = ambChips(seed);
+
+  const scene = document.createElement('div');
+  scene.className = 'lp-scene';
+  scene.style.width  = AMB.W + 'px';
+  scene.style.height = AMB.H + 'px';
+
+  const inner = document.createElement('div');
+  inner.className = 'lp-scene-inner';
+  scene.appendChild(inner);
+
+  const px = n => n + 'px';
+  const labels = AMB.MNAMES.map((name, i) => {
+    const el = document.createElement('div');
+    el.textContent = name;
+    Object.assign(el.style, {
+      position: 'absolute', left: px(AMB.GX - 84), top: px(AMB.GY + i * AMB.CH),
+      width: '64px', height: px(AMB.CH),
+      display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
+      fontSize: '18px', color: 'var(--muted-foreground)', opacity: '0',
+    });
+    inner.appendChild(el);
+    return { el, st: 0.2 + i * 0.14, dur: 0.4, done: false };
+  });
+
+  const cells = [];
+  for (let r = 0; r < 12; r++) {
+    for (let c = 0; c < AMB.MONTHS[r]; c++) {
+      const el = document.createElement('div');
+      el.textContent = c + 1;
+      Object.assign(el.style, {
+        position: 'absolute', left: px(AMB.GX + c * AMB.CW + 3), top: px(AMB.GY + r * AMB.CH + 3),
+        width: px(AMB.CW - 6), height: px(AMB.CH - 6),
+        background: 'var(--background)', border: '1px solid var(--border)',
+        borderRadius: '4px', boxSizing: 'border-box',
+        fontSize: '11px', color: 'var(--muted-foreground)',
+        paddingLeft: '5px', paddingTop: '2px', fontVariantNumeric: 'tabular-nums',
+        opacity: '0', transform: 'translateX(-8px)',
+      });
+      inner.appendChild(el);
+      cells.push({ el, st: 0.2 + r * 0.14 + c * 0.01, dur: 0.35, done: false });
+    }
+  }
+
+  const chipEls = chips.map((ch, i) => {
+    const el = document.createElement('div');
+    Object.assign(el.style, {
+      position: 'absolute', left: px(AMB.GX + ch.d0 * AMB.CW + 6), top: px(AMB.GY + ch.mi * AMB.CH + 6),
+      width: px((ch.d1 - ch.d0 + 1) * AMB.CW - 12), height: px(AMB.CH - 12),
+      background: ch.col, borderRadius: '4px',
+      opacity: '0', transform: 'translateY(-26px)',
+    });
+    inner.appendChild(el);
+    return { el, st: AMB.F + 0.15 + i * ((AMB.M - AMB.F - 0.6) / chips.length), dur: 0.45, done: false };
+  });
+
+  const tile = document.createElement('div');
+  Object.assign(tile.style, {
+    position: 'absolute', left: px(AMB.TX + 3), top: px(AMB.TY + 3),
+    width: px(AMB.CW - 6), height: px(AMB.CH - 6),
+    background: 'var(--foreground)', borderRadius: '4px', opacity: '0',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+  });
+  const mark = document.createElement('div');
+  Object.assign(mark.style, {
+    height: '28px', width: (28 * (98 / 147)) + 'px', background: AMB.OCHRE, opacity: '0',
+    WebkitMask: 'url(assets/monolith-mark.png) center / contain no-repeat',
+    mask: 'url(assets/monolith-mark.png) center / contain no-repeat',
+  });
+  tile.appendChild(mark);
+  inner.appendChild(tile);
+
+  host.appendChild(scene);
+  return { scene, inner, labels, cells, chipEls, tile, mark };
+}
+
+// Fade-and-slide entrances share one shape, so they share one updater.
+function ambEnter(items, T, kind) {
+  for (const it of items) {
+    if (it.done) continue;
+    const raw = clamp01((T - it.st) / it.dur);
+    const p   = kind === 'chip' ? easeOutCubic(raw) : raw;
+    it.el.style.opacity = String(p);
+    if (kind === 'cell') it.el.style.transform = `translateX(${(1 - p) * -8}px)`;
+    if (kind === 'chip') it.el.style.transform = `translateY(${(1 - p) * -26}px)`;
+    if (raw >= 1) it.done = true;      // settled — stop touching it
+  }
+}
+
+function ambFrame(sc, t) {
+  const T  = Math.min(t, AMB.TOTAL);
+  const td = AMB.TD;
+
+  sc.scene.style.opacity = String(1 - clamp01((t - (AMB.TOTAL + AMB.HOLD - 0.6)) / 0.6));
+
+  const s    = 1 + 0.035 * clamp01(T / AMB.M);
+  const k    = clamp01((T - td - 0.45) / 0.35);
+  const dip  = Math.sin(k * Math.PI) * 8;
+  sc.inner.style.transform =
+    `translate(${960 - s * 960}px, ${AMB.H / 2 - s * AMB.H / 2 + dip}px) scale(${s})`;
+
+  ambEnter(sc.labels,  T, 'label');
+  ambEnter(sc.cells,   T, 'cell');
+  ambEnter(sc.chipEls, T, 'chip');
+
+  const dp = clamp01((T - td) / 0.45);
+  sc.tile.style.opacity   = T >= td - 0.02 ? '1' : '0';
+  const pulse = 1 + 0.04 * Math.sin(Math.max(0, T - (td + 1.3)) * 1.6) * clamp01((T - (td + 1.3)) / 0.5);
+  sc.tile.style.transform = `translateY(${-900 * (1 - easeInCubic(dp))}px) scale(${pulse})`;
+  sc.mark.style.opacity   = String(clamp01((T - (td + 0.8)) / 0.5));
+}
+
+function startAmbient() {
+  const host = document.getElementById('lp-stage');
+  if (!host || _ambRaf !== null) return;
+
+  // Re-fit from the frame loop rather than trusting one notification: the
+  // scene is scaled to the card, and a stale scale renders it at the wrong
+  // size. `lastW` keeps this to one layout read per frame and a style write
+  // only when the width actually moves. The observer stays as well, to catch
+  // the card resizing without the window doing so.
+  let lastW = -1;
+  const fit = () => {
+    const w = host.clientWidth;
+    if (w === lastW || !_ambScene) return;
+    lastW = w;
+    _ambScene.scene.style.transform = `scale(${w / AMB.W})`;
+  };
+  _ambScene = buildAmbScene(host, Date.now());
+  fit();
+  if (window.ResizeObserver) { _ambRO = new ResizeObserver(fit); _ambRO.observe(host); }
+
+  // Reduced motion gets the resolved scene — grid filled, monolith landed —
+  // rather than the build and the loop.
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    ambFrame(_ambScene, AMB.TOTAL);
+    return;
+  }
+
+  const period = AMB.TOTAL + AMB.HOLD;
+  const t0 = performance.now();
+  let lastCycle = 0;
+  const tick = () => {
+    const el  = (performance.now() - t0) / 1000;
+    const cyc = Math.floor(el / period);
+    if (cyc !== lastCycle) {          // fresh layout each time round
+      lastCycle = cyc;
+      _ambScene = buildAmbScene(host, Date.now() + cyc);
+      lastW = -1;                    // new nodes need the scale applied again
+    }
+    fit();
+    ambFrame(_ambScene, el % period);
+    _ambRaf = requestAnimationFrame(tick);
+  };
+  _ambRaf = requestAnimationFrame(tick);
+}
+
+function stopAmbient() {
+  if (_ambRaf !== null) cancelAnimationFrame(_ambRaf);
+  _ambRaf = null;
+  if (_ambRO) { _ambRO.disconnect(); _ambRO = null; }
+  const host = document.getElementById('lp-stage');
+  if (host) host.innerHTML = '';
+  _ambScene = null;
 }
 
 function showLanding() {
   $landing.classList.remove('hidden');
   document.body.classList.add('chrome-off');
   $landing.scrollTop = 0;
-  startDotBand();
+  startAmbient();
 }
 
 function hideLanding() {
   $landing.classList.add('hidden');
   document.body.classList.remove('chrome-off');
-  stopDotBand();
+  stopAmbient();
 }
 
 // Leaving the landing for the gate. The CTA reads as "start", so it opens the
@@ -4626,7 +4800,9 @@ function backToLanding() {
 }
 
 document.getElementById('auth-home').addEventListener('click', backToLanding);
-document.getElementById('lp-cta').addEventListener('click', () => enterAuth('signup'));
+// v3 puts the same sign-up call to action in the nav and again at the foot.
+document.querySelectorAll('.lp-join').forEach(b =>
+  b.addEventListener('click', () => enterAuth('signup')));
 document.getElementById('lp-signin').addEventListener('click', () => enterAuth('signin'));
 document.getElementById('lp-privacy').addEventListener('click', e => e.preventDefault());
 
