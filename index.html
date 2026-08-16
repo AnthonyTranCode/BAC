@@ -27,6 +27,9 @@
       --cell-w:      57px;
       --label-w:     76px;
       --cell-h:      60px;
+      /* Tracks the live row height; full-height bars size off it. Seeded here
+         so the calc always resolves, even before the first render sets it. */
+      --row-h:       60px;
 
       /* Calendar text size. Everything drawn inside the grid — and the row
          geometry that has to clear it — is derived from this one multiplier,
@@ -434,6 +437,9 @@
       height: var(--bar-h);
       border-radius: var(--radius-md);
       font: var(--weight-medium) var(--font-bar)/var(--bar-h) var(--font);
+      /* line-height carries the vertical centring, so a taller bar has to
+         restate it — and doing it this way keeps the ellipsis, which a flex
+         container would lose. */
       color: var(--primary-foreground);
       padding: 0 14px;
       white-space: nowrap;
@@ -445,6 +451,13 @@
       letter-spacing: 0;
       text-align: center;
       user-select: none;
+    }
+
+    /* Sole occupant of its days: fill the row below the date header, matching
+       the space a single-day chip gets (1px above, 2px below). */
+    .ev-bar.ev-solo {
+      height:      calc(var(--row-h) - var(--cell-hdr-h) - 3px);
+      line-height: calc(var(--row-h) - var(--cell-hdr-h) - 3px);
     }
 
     .ev-bar:hover { opacity: .9; }
@@ -2423,9 +2436,23 @@ function buildGrid() {
     const evLyr = document.createElement('div');
     evLyr.className = 'ev-layer';
 
+    // A bar with nothing else in the days it covers takes the row's full
+    // height, the way a single-day chip does, rather than sitting as a thin
+    // strip with dead space beneath it. Anything sharing a day — another bar
+    // on a second track, an event chip, a holiday — puts it back to a strip.
+    const barIsSolo = bar => {
+      for (let d = bar.s; d <= bar.e; d++) {
+        if ((dayTracks[d] || 0) > 1)                       return false;
+        if (chipsByDay[d]?.length)                         return false;
+        if (hMap[padDate(curYear, m, d)]?.length)          return false;
+      }
+      return true;
+    };
+
     for (const bar of trackedBars) {
       const barEl = document.createElement('div');
       barEl.className = `ev-bar cat-${bar.category}`;
+      if (barIsSolo(bar)) barEl.classList.add('ev-solo');
       barEl.style.left  = `calc(${bar.s - 1} * var(--cell-w) + 1px)`;
       barEl.style.width = `calc(${bar.e - bar.s + 1} * var(--cell-w) - 2px)`;
       barEl.style.top   = (bar.track * trackH() + 1) + 'px';
@@ -2582,6 +2609,7 @@ function buildGrid() {
   growCellsToFitChips();
   applySpotlight();   // freshly drawn bars must respect the active filter
 
+  setRowHeightVar(rowHTarget ?? uniformCellH);
   requestAnimationFrame(fitChips);   // font-only; safe to defer
 }
 
@@ -2605,6 +2633,7 @@ function growCellsToFitChips() {
     cells.forEach(cell => {
       cell.style.height = (parseFloat(cell.style.height) + worst) + 'px';
     });
+    setRowHeightVar(parseFloat(cells[0].style.height));
   }
 }
 
@@ -4052,6 +4081,13 @@ function measureRequiredRowH() {
 function applyRowHeight(h) {
   rowHTarget = h;
   document.querySelectorAll('.day-cell').forEach(c => { c.style.height = h + 'px'; });
+  setRowHeightVar(h);
+}
+
+// Full-height bars size themselves off this in CSS, so it has to follow every
+// place a row height is set — the initial build, Fit, and the chip grow pass.
+function setRowHeightVar(h) {
+  document.documentElement.style.setProperty('--row-h', h + 'px');
 }
 
 function setColumnWidth(w) {
