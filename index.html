@@ -1457,6 +1457,10 @@
       font-size: 36px; font-weight: var(--weight-medium);
       letter-spacing: -0.02em; text-align: center; text-wrap: pretty;
     }
+    /* The hero and closing calls to action are the primary ones, so they sit
+       taller than the compact nav size .lp-btn defaults to, and hug their
+       label rather than stretching down the pitch column. */
+    .lp-pitch .lp-btn { height: 44px; padding: 0 28px; align-self: flex-start; margin-top: 4px; }
     .lp-closing .lp-btn { height: 44px; padding: 0 28px; }
 
     /* ── Footer ── */
@@ -1643,14 +1647,14 @@
       </div>
       <div class="lp-nav-actions">
         <button type="button" class="lp-signin" id="lp-signin">Sign in</button>
-        <button type="button" class="lp-btn lp-join">Raise your monolith</button>
       </div>
     </nav>
 
     <header class="lp-hero">
-      <h1 class="lp-headline">Most years dissolve.</h1>
+      <h1 class="lp-headline">You can't recall most years.<br>Now you can.</h1>
       <div class="lp-pitch">
-        <p class="lp-sub">365 days of meetings, errands, and weekends that blur into one another. By December you can't say what happened.</p>
+        <p class="lp-sub">365 days of meetings, errands, and weekends that blur into one another. By end of the year you can't say what happened.</p>
+        <button type="button" class="lp-btn lp-join">Raise your monolith</button>
       </div>
     </header>
 
