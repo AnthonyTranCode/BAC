@@ -1249,9 +1249,9 @@
     .series-note.hidden { display: none; }
 
     /* ── Landing ───────────────────────────────────────────── */
-    /* Ported from the "Monolith Landing" design. The design's literal hexes
-       are the same Grain values the app already carries, so they're written
-       as tokens here and the page follows the theme for free. */
+    /* Ported from the "Monolith Landing v3" design. The design's literal
+       hexes are the same Grain values the app already carries, so they're
+       written as tokens here and the page follows the theme for free. */
     #landing {
       position: fixed; inset: 0; z-index: 150;
       overflow-y: auto;
@@ -1260,8 +1260,7 @@
       font-family: var(--font);
       padding: 24px;
       /* flex-start, not stretch: a stretched shell makes its column children
-         shrink to the viewport, and .lp-hero's overflow:hidden then eats the
-         headline and CTA instead of the page scrolling. */
+         shrink to the viewport instead of the page scrolling. */
       display: flex; justify-content: center; align-items: flex-start;
       --cta-hover: #272725;   /* design's button hover; no light token matches */
     }
@@ -1269,8 +1268,7 @@
     [data-theme="dark"] #landing { --cta-hover: var(--muted); }
 
     /* The calendar's floating controls are fixed-position and outrank both
-       overlays, so they're taken down until the planner itself is on screen.
-       (They used to float over the sign-in card too.) */
+       overlays, so they're taken down until the planner itself is on screen. */
     body.chrome-off .zoom-bar,
     body.chrome-off .size-panel,
     body.chrome-off #toast { display: none !important; }
@@ -1281,17 +1279,12 @@
     }
     .lp-shell > * { flex-shrink: 0; }
 
-    .lp-hero {
-      background: var(--card);
-      border-radius: var(--radius-2xl);
-      box-shadow: var(--shadow-md);
-      overflow: hidden;
+    /* ── Nav ── */
+    .lp-nav {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; padding: 8px 8px 0;
     }
-
-    .lp-hero-head {
-      padding: 32px 40px 0;
-      display: flex; align-items: center; justify-content: space-between; gap: 16px;
-    }
+    .lp-nav-actions { display: flex; align-items: center; gap: 24px; }
 
     .lp-wordmark { display: flex; align-items: center; gap: 12px; }
     .lp-mark {
@@ -1301,62 +1294,71 @@
       -webkit-mask: url(assets/monolith-mark.png) center / contain no-repeat;
               mask: url(assets/monolith-mark.png) center / contain no-repeat;
     }
+    .lp-mark-lg { width: 30px; height: 45px; }
     .lp-wordmark-txt {
       font-size: 16px; font-weight: var(--weight-medium); letter-spacing: -0.01em;
     }
 
     .lp-signin {
       background: none; border: none; padding: 0;
-      font: var(--weight-medium) 14px/1 var(--font);
-      color: var(--muted-foreground);
+      font: var(--weight-normal) 14px/1 var(--font);
+      color: var(--foreground);
       cursor: pointer;
       transition: color var(--duration, 200ms) var(--ease-standard);
     }
-    .lp-signin:hover { color: var(--foreground); }
+    .lp-signin:hover { color: var(--muted-foreground); }
     .lp-signin:focus-visible {
       outline: 2px solid var(--ring); outline-offset: 3px; border-radius: var(--radius-md);
+    }
+
+    .lp-btn {
+      display: flex; align-items: center; justify-content: center;
+      height: 40px; padding: 0 20px;
+      font: var(--weight-medium) 14px/1 var(--font);
+      color: var(--primary-foreground); background: var(--primary);
+      border: none; border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      white-space: nowrap; cursor: pointer;
+      transition: background var(--duration, 200ms) var(--ease-standard);
+    }
+    .lp-btn:hover { background: var(--cta-hover); }
+    .lp-btn:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+
+    /* ── Hero — on the page itself in v3, not in a card ── */
+    .lp-hero {
+      display: grid; grid-template-columns: 1.2fr 1fr;
+      gap: 48px; align-items: end;
+      padding: 48px 8px 16px;
+    }
+    .lp-headline {
+      margin: 0;
+      font-size: 72px; font-weight: var(--weight-medium);
+      letter-spacing: -0.02em; line-height: 1.04; text-wrap: pretty;
+    }
+    .lp-pitch { display: flex; flex-direction: column; gap: 12px; padding-bottom: 6px; }
+    .lp-sub  { margin: 0; font-size: 18px; line-height: 1.5; }
+    .lp-note { margin: 0; font-size: 14px; color: var(--muted-foreground); }
+    .lp-fine { margin: 0; font-size: 12px; color: var(--muted-foreground); }
+
+    /* ── Panels ── */
+    .lp-panel {
+      background: var(--card);
+      border-radius: var(--radius-2xl);
+      box-shadow: var(--shadow-md);
+      overflow: hidden;
     }
 
     /* The ambient scene is authored at 1920x816 and scaled to whatever width
        the card gives it, so the box just holds that ratio. */
     .lp-stage {
       width: 100%; aspect-ratio: 1920 / 816;
-      margin-top: 8px;
       position: relative; overflow: hidden;
       background: var(--card);
     }
     .lp-scene { transform-origin: 0 0; position: relative; }
     .lp-scene-inner { position: absolute; inset: 0; transform-origin: 0 0; }
 
-    .lp-hero-body {
-      display: grid; grid-template-columns: 1.2fr 1fr;
-      gap: 48px; align-items: end;
-      padding: 32px 40px 48px;
-    }
-
-    .lp-headline {
-      margin: 0;
-      font-size: 72px; font-weight: var(--weight-medium);
-      letter-spacing: -0.02em; line-height: 1.04; text-wrap: pretty;
-    }
-
-    .lp-pitch { display: flex; flex-direction: column; gap: 12px; padding-bottom: 6px; }
-    .lp-sub  { margin: 0; font-size: 18px; line-height: 1.5; color: var(--foreground); }
-    .lp-fine { margin: 0; font-size: 12px; color: var(--muted-foreground); }
-
-    .lp-cta {
-      display: flex; align-items: center; justify-content: center;
-      height: 44px; margin-top: 4px;
-      font: var(--weight-medium) 14px/1 var(--font);
-      color: var(--primary-foreground); background: var(--primary);
-      border: none; border-radius: var(--radius-md);
-      box-shadow: var(--shadow-sm);
-      cursor: pointer;
-      transition: background var(--duration, 200ms) var(--ease-standard);
-    }
-    .lp-cta:hover { background: var(--cta-hover); }
-    .lp-cta:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
-
+    /* ── Features ── */
     .lp-features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
 
     .lp-card {
@@ -1365,11 +1367,33 @@
       box-shadow: var(--shadow-md);
       padding: 24px;
       display: flex; flex-direction: column; gap: 12px;
+      transition: box-shadow var(--duration, 200ms) var(--ease-standard);
     }
+    .lp-card:hover { box-shadow: var(--shadow-lg); }
     .lp-card svg { color: var(--foreground); }
     .lp-card-ttl { font-size: 20px; font-weight: var(--weight-medium); letter-spacing: -0.01em; }
     .lp-card-txt { font-size: 14px; line-height: 1.5; color: var(--muted-foreground); }
 
+    /* ── Manifesto ── */
+    .lp-manifesto { padding: 96px 8px; display: flex; justify-content: center; }
+    .lp-manifesto p {
+      margin: 0; max-width: 720px; text-align: center;
+      font-size: 30px; font-weight: var(--weight-medium);
+      letter-spacing: -0.01em; line-height: 1.35; text-wrap: pretty;
+    }
+
+    /* ── Closing CTA ── */
+    .lp-closing {
+      padding: 64px 24px;
+      display: flex; flex-direction: column; align-items: center; gap: 20px;
+    }
+    .lp-closing-ttl {
+      font-size: 36px; font-weight: var(--weight-medium);
+      letter-spacing: -0.02em; text-align: center; text-wrap: pretty;
+    }
+    .lp-closing .lp-btn { height: 44px; padding: 0 28px; }
+
+    /* ── Footer ── */
     .lp-foot {
       display: flex; align-items: center; justify-content: space-between;
       padding: 8px 8px 24px;
@@ -1381,18 +1405,24 @@
     }
     .lp-foot a:hover { color: var(--foreground); }
 
-    /* The design is drawn at 1280px. Below that the two grids would crush
-       rather than reflow, so they stack. */
+    /* The design is drawn at 1280px. Below that the grids would crush rather
+       than reflow, so they stack and the outsized type comes down. */
     @media (max-width: 900px) {
-      .lp-hero-body { grid-template-columns: 1fr; gap: 24px; align-items: start; }
-      .lp-headline  { font-size: 52px; }
-      .lp-features  { grid-template-columns: 1fr; gap: 16px; }
-      .lp-hero-head { padding: 24px 24px 0; }
-      .lp-hero-body { padding: 24px 24px 32px; }
+      .lp-hero { grid-template-columns: 1fr; gap: 24px; align-items: start; padding: 32px 8px 8px; }
+      .lp-headline { font-size: 52px; }
+      .lp-features { grid-template-columns: 1fr; gap: 16px; }
+      .lp-manifesto { padding: 56px 8px; }
+      .lp-manifesto p { font-size: 24px; }
+      .lp-closing { padding: 48px 20px; }
+      .lp-closing-ttl { font-size: 28px; }
     }
     @media (max-width: 560px) {
+      #landing { padding: 12px; }
       .lp-headline { font-size: 40px; }
-      #landing     { padding: 12px; }
+      .lp-nav { flex-wrap: wrap; gap: 12px; }
+      .lp-nav-actions { gap: 16px; }
+      .lp-manifesto p { font-size: 20px; }
+      .lp-closing-ttl { font-size: 24px; }
     }
 
     /* ── Auth gate ─────────────────────────────────────────── */
@@ -1535,25 +1565,27 @@
 <div id="landing" class="hidden">
   <div class="lp-shell">
 
-    <section class="lp-hero">
-      <div class="lp-hero-head">
-        <div class="lp-wordmark">
-          <div class="lp-mark" role="img" aria-label="Monolith"></div>
-          <div class="lp-wordmark-txt">Monolith</div>
-        </div>
+    <nav class="lp-nav">
+      <div class="lp-wordmark">
+        <div class="lp-mark" role="img" aria-label="Monolith"></div>
+        <div class="lp-wordmark-txt">Monolith</div>
+      </div>
+      <div class="lp-nav-actions">
         <button type="button" class="lp-signin" id="lp-signin">Sign in</button>
+        <button type="button" class="lp-btn lp-join">Raise your monolith</button>
       </div>
+    </nav>
 
+    <header class="lp-hero">
+      <h1 class="lp-headline">One year.<br>One monolith.</h1>
+      <div class="lp-pitch">
+        <p class="lp-sub">The whole year on one page, organized around the one thing you'll actually remember.</p>
+        <p class="lp-note">Free while your year has under one monolith. Which it does.</p>
+      </div>
+    </header>
+
+    <section class="lp-panel lp-product">
       <div class="lp-stage" id="lp-stage" aria-hidden="true"></div>
-
-      <div class="lp-hero-body">
-        <h1 class="lp-headline">One year.<br>One monolith.</h1>
-        <div class="lp-pitch">
-          <p class="lp-sub">The whole year on one page, organized around the one thing you'll actually remember.</p>
-          <button type="button" class="lp-cta" id="lp-cta">Raise your monolith</button>
-          <p class="lp-fine">One email a quarter. If there's nothing worth saying, we don't send.</p>
-        </div>
-      </div>
     </section>
 
     <section class="lp-features">
@@ -1572,6 +1604,17 @@
         <div class="lp-card-ttl">Look back and see something</div>
         <div class="lp-card-txt">By December the calendar is a record, not a plan.</div>
       </div>
+    </section>
+
+    <section class="lp-manifesto">
+      <p>Most years dissolve. A monolith is the thing that refuses to.</p>
+    </section>
+
+    <section class="lp-panel lp-closing">
+      <div class="lp-mark lp-mark-lg" role="img" aria-label="Monolith"></div>
+      <div class="lp-closing-ttl">2027 is 365 days. Here they all are.</div>
+      <button type="button" class="lp-btn lp-join">Raise your monolith</button>
+      <p class="lp-fine">One email a quarter. If there's nothing worth saying, we don't send.</p>
     </section>
 
     <footer class="lp-foot">
@@ -4757,7 +4800,9 @@ function backToLanding() {
 }
 
 document.getElementById('auth-home').addEventListener('click', backToLanding);
-document.getElementById('lp-cta').addEventListener('click', () => enterAuth('signup'));
+// v3 puts the same sign-up call to action in the nav and again at the foot.
+document.querySelectorAll('.lp-join').forEach(b =>
+  b.addEventListener('click', () => enterAuth('signup')));
 document.getElementById('lp-signin').addEventListener('click', () => enterAuth('signin'));
 document.getElementById('lp-privacy').addEventListener('click', e => e.preventDefault());
 
