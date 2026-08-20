@@ -3843,17 +3843,17 @@ function renderCatManager() {
     inp.addEventListener('input', e => { stagedCats[+e.target.dataset.idx].label = e.target.value; });
   });
   list.querySelectorAll('.cat-style-btn').forEach(btn => {
-    btn.addEventListener('click', e => {
-      const idx = +e.target.dataset.idx;
-      stagedCats[idx].style = e.target.dataset.style;
+    btn.addEventListener('click', () => {
+      stagedCats[+btn.dataset.idx].style = btn.dataset.style;
       renderCatManager();
     });
   });
+  // Read the index off the button itself, not the event target — the icon
+  // inside swallows the click, and its missing data-idx would splice at 0.
   list.querySelectorAll('.cat-del-btn').forEach(btn => {
-    btn.addEventListener('click', e => {
-      const idx = +e.target.dataset.idx;
+    btn.addEventListener('click', () => {
       if (stagedCats.length <= 1) return;
-      stagedCats.splice(idx, 1);
+      stagedCats.splice(+btn.dataset.idx, 1);
       renderCatManager();
     });
   });
