@@ -992,6 +992,20 @@
     .cat-del-btn:not(:disabled):hover { color: var(--destructive); background: var(--accent); }
     .cat-del-btn:disabled { opacity: .4; cursor: default; }
 
+    /* Deleting is armed, not immediate: the row turns into its own warning, so
+       a misclick on the trash costs nothing and the count says what is at
+       stake before the choice is made. */
+    .cat-row.confirming { gap: 12px; }
+    .cat-del-warn {
+      flex: 1; min-width: 0;
+      font: var(--weight-normal) 14px/1.35 var(--font);
+      color: var(--foreground);
+    }
+    .cat-del-warn strong { font-weight: var(--weight-medium); }
+    .cat-del-warn span { color: var(--muted-foreground); }
+    .cat-row.confirming .btn-del,
+    .cat-row.confirming .btn-cancel { flex-shrink: 0; }
+
     .modal-sub { font: var(--weight-normal) 14px/1.4 var(--font); color: var(--muted-foreground); margin-top: 4px; }
 
     /* ─── Holiday Manager ────────────────────────── */
@@ -3789,14 +3803,27 @@ function renderCatSelect() {
 
 // ── Category Manager ─────────────────────────────────────────
 let stagedCats = [];
+// Category armed for deletion, held by id rather than row index so a reorder
+// mid-decision can't retarget the warning at the wrong row.
+let pendingDelId = null;
+
+// An event stores a category id, so dropping the category leaves it grey and
+// unlabeled. Count the stored records — a yearly repeat is stored once — so
+// the warning can say how much is affected.
+function countCatEvents(catId) {
+  return Object.values(allEvents)
+    .reduce((n, list) => n + (list || []).filter(e => e.category === catId).length, 0);
+}
 
 function openCatManager() {
   stagedCats = categories.map(c => ({ ...c }));
+  pendingDelId = null;
   renderCatManager();
   document.getElementById('cat-manager-bg').classList.remove('hidden');
 }
 
 function closeCatManager() {
+  pendingDelId = null;   // else Escape would keep swallowing the toast dismissal
   document.getElementById('cat-manager-bg').classList.add('hidden');
 }
 
@@ -3820,6 +3847,17 @@ function renderCatManager() {
     const solidActive  = cat.style === 'solid'  ? ' active' : '';
     const dashedActive = cat.style === 'dashed' ? ' active' : '';
     const canDel = stagedCats.length > 1 ? '' : ' disabled';
+    if (cat.id === pendingDelId) {
+      const n = countCatEvents(cat.id);
+      const toll = n
+        ? `${n} ${n === 1 ? 'event' : 'events'} will keep ${n === 1 ? 'its' : 'their'} dates but lose this color.`
+        : 'Nothing is using it.';
+      return `<div class="cat-row confirming" data-idx="${i}" data-id="${cat.id}">
+        <div class="cat-del-warn">Delete <strong class="cat-del-name"></strong>? <span>${toll}</span></div>
+        <button class="btn-cancel cat-del-no">Cancel</button>
+        <button class="btn-del cat-del-yes">Delete</button>
+      </div>`;
+    }
     return `<div class="cat-row" data-idx="${i}" data-id="${cat.id}">
       <button class="cat-grip" data-idx="${i}" title="Drag to reorder, or use the arrow keys"
               aria-label="Reorder ${cat.label}, position ${i + 1} of ${stagedCats.length}">${GRIP_ICON}</button>
@@ -3853,10 +3891,37 @@ function renderCatManager() {
   list.querySelectorAll('.cat-del-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       if (stagedCats.length <= 1) return;
-      stagedCats.splice(+btn.dataset.idx, 1);
+      pendingDelId = stagedCats[+btn.dataset.idx].id;
       renderCatManager();
     });
   });
+  list.querySelectorAll('.cat-del-no').forEach(btn => {
+    btn.addEventListener('click', () => cancelStagedDel());
+  });
+  list.querySelectorAll('.cat-del-yes').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = stagedCats.findIndex(c => c.id === pendingDelId);
+      pendingDelId = null;
+      if (idx >= 0 && stagedCats.length > 1) stagedCats.splice(idx, 1);
+      renderCatManager();
+    });
+  });
+
+  if (pendingDelId) {
+    // The label is user-typed, so it goes in as text rather than markup.
+    const armed = stagedCats.find(c => c.id === pendingDelId);
+    const nameEl = list.querySelector('.cat-del-name');
+    if (nameEl && armed) nameEl.textContent = armed.label;
+    // Cancel is the safe default, so that is where the keyboard lands.
+    list.querySelector('.cat-del-no')?.focus();
+  }
+}
+
+function cancelStagedDel() {
+  if (!pendingDelId) return false;
+  pendingDelId = null;
+  renderCatManager();
+  return true;
 }
 
 // Reordering runs on plain mouse events, the same way event bars are dragged
@@ -4060,8 +4125,11 @@ document.addEventListener('keydown', e => {
     return;
   }
 
-  // Escape dismisses a pending undo; Ctrl/Cmd+Z takes it.
-  if (e.key === 'Escape') { hideToast(); return; }
+  // Escape backs out of an armed category delete first, then a pending undo.
+  if (e.key === 'Escape') {
+    if (!cancelStagedDel()) hideToast();
+    return;
+  }
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && _undoStack.length) {
     e.preventDefault();
     performUndo();
