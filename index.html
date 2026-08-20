@@ -902,7 +902,8 @@
       transition: background var(--duration, 200ms) var(--ease-standard);
       flex-shrink: 0;
     }
-    .cat-mgr-btn:hover { background: var(--accent); }
+    .cat-mgr-btn:hover:not(:disabled) { background: var(--accent); }
+    .cat-mgr-btn:disabled { opacity: .4; cursor: default; }
     .cat-mgr-btn svg { flex-shrink: 0; }
 
     .cat-row {
@@ -990,6 +991,20 @@
     }
     .cat-del-btn:not(:disabled):hover { color: var(--destructive); background: var(--accent); }
     .cat-del-btn:disabled { opacity: .4; cursor: default; }
+
+    /* Deleting is armed, not immediate: the row turns into its own warning, so
+       a misclick on the trash costs nothing and the count says what is at
+       stake before the choice is made. */
+    .cat-row.confirming { gap: 12px; }
+    .cat-del-warn {
+      flex: 1; min-width: 0;
+      font: var(--weight-normal) 14px/1.35 var(--font);
+      color: var(--foreground);
+    }
+    .cat-del-warn strong { font-weight: var(--weight-medium); }
+    .cat-del-warn span { color: var(--muted-foreground); }
+    .cat-row.confirming .btn-del,
+    .cat-row.confirming .btn-cancel { flex-shrink: 0; }
 
     .modal-sub { font: var(--weight-normal) 14px/1.4 var(--font); color: var(--muted-foreground); margin-top: 4px; }
 
@@ -1766,6 +1781,10 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/></svg>
         Today
       </button>
+      <button class="cat-mgr-btn" id="undo-btn" disabled title="Nothing to undo">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
+        Undo
+      </button>
       <div class="sep"></div>
       <button class="cat-mgr-btn" id="cat-mgr-btn" title="Manage categories">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>
@@ -2191,7 +2210,12 @@ function dominantMonthFor(ev, year) {
 // Cheap (these arrays are small) and immune to drift, since it restores
 // state wholesale rather than trying to invert each operation.
 
-let _undo      = null;
+// Undo is a stack of snapshots rather than one slot that the toast owned and
+// cleared on its way out — which meant a mistake was only reversible for the
+// six seconds the toast was up, and creating or editing an event was never
+// reversible at all. The header button reaches the whole stack.
+const UNDO_MAX = 25;
+let _undoStack  = [];
 let _toastTimer = null;
 const TOAST_MS = 6000;
 
@@ -2204,8 +2228,36 @@ function snapshotYears(...years) {
   return snap;
 }
 
-function showToast(message, snap) {
-  _undo = snap;
+// Call before mutating, naming the action for the button's tooltip.
+function pushUndo(label, ...years) {
+  _undoStack.push({ label, snap: snapshotYears(...years) });
+  if (_undoStack.length > UNDO_MAX) _undoStack.shift();
+  updateUndoBtn();
+}
+
+function updateUndoBtn() {
+  const btn = document.getElementById('undo-btn');
+  if (!btn) return;
+  const next = _undoStack[_undoStack.length - 1];
+  btn.disabled = !next;
+  btn.title = next ? `Undo ${next.label} (${navigator.platform.includes('Mac') ? '⌘' : 'Ctrl+'}Z)`
+                   : 'Nothing to undo';
+}
+
+function performUndo() {
+  const step = _undoStack.pop();
+  if (!step) return;
+  for (const [y, list] of Object.entries(step.snap)) {
+    allEvents[+y] = list;
+    persist(+y);
+  }
+  updateUndoBtn();
+  hideToast();
+  renderCalendar();
+  showToast(`Undid ${step.label}.`);
+}
+
+function showToast(message) {
   document.getElementById('toast-msg').textContent = message;
   const toast = document.getElementById('toast');
   toast.classList.add('show');
@@ -2213,20 +2265,10 @@ function showToast(message, snap) {
   _toastTimer = setTimeout(hideToast, TOAST_MS);
 }
 
+// The toast going away no longer takes the undo with it.
 function hideToast() {
   document.getElementById('toast').classList.remove('show');
   clearTimeout(_toastTimer);
-  _undo = null;
-}
-
-function performUndo() {
-  if (!_undo) return;
-  for (const [y, list] of Object.entries(_undo)) {
-    allEvents[+y] = list;
-    persist(+y);
-  }
-  hideToast();
-  renderCalendar();
 }
 
 // ── Yearly repeats ───────────────────────────────────────────
@@ -3150,6 +3192,11 @@ function saveEvent() {
     endDate   = end ? shiftDateToYear(end, editFrom + span) : null;
   }
 
+  // Creating and editing were the two things undo never covered, and editing
+  // is the easiest to get wrong. saveEvent only ever mutates allEvents[year],
+  // so that is the whole of what has to be captured.
+  pushUndo(editId ? 'editing the event' : 'adding the event', year);
+
   if (!allEvents[year]) allEvents[year] = [];
 
   const record = { id: editId || uid(), title, category: cat,
@@ -3178,13 +3225,13 @@ function deleteEvent() {
   const year = editFrom != null ? editFrom : parseDate(start).year;
   const wasSeries = editFrom != null ||
     (allEvents[year] || []).find(e => e.id === editId)?.repeat === 'yearly';
-  const snap = snapshotYears(year);
+  pushUndo(wasSeries ? 'deleting the series' : 'deleting the event', year);
 
   allEvents[year] = (allEvents[year] || []).filter(e => e.id !== editId);
   persist(year);
   closeModal();
   renderCalendar();
-  showToast(wasSeries ? 'Series deleted.' : 'Event deleted.', snap);
+  showToast(wasSeries ? 'Series deleted.' : 'Event deleted.');
 }
 
 // ── Export PNG ───────────────────────────────────────────────
@@ -3326,16 +3373,16 @@ function onDragEnd(e) {
   // Dragging a projected occurrence retargets the stored original, so the
   // whole series moves instead of forking a copy into the year on screen.
   if (ev._from != null) {
-    const snap = snapshotYears(ev._from);
+    pushUndo(`${verb === 'moved' ? 'moving' : 'resizing'} the series`, ev._from);
     moveSeriesTo(ev, newStart, newEnd);
     renderCalendar();
-    showToast(`Series ${verb}.`, snap);
+    showToast(`Series ${verb}.`);
     return;
   }
 
   const origYear = parseDate(ev.startDate).year;
   const newYear  = parseDate(newStart).year;
-  const snap = snapshotYears(origYear, newYear);
+  pushUndo(`${verb === 'moved' ? 'moving' : 'resizing'} the event`, origYear, newYear);
 
   allEvents[origYear] = (allEvents[origYear] || []).filter(x => x.id !== ev.id);
   persist(origYear);
@@ -3347,7 +3394,7 @@ function onDragEnd(e) {
   });
   persist(newYear);
   renderCalendar();
-  showToast(`Event ${verb}.`, snap);
+  showToast(`Event ${verb}.`);
 }
 
 // Re-anchor a repeating series onto new dates, expressed in whatever year the
@@ -3452,16 +3499,16 @@ function onChipDragEnd(e) {
   if (!targetDate || targetDate === ev.startDate) { renderCalendar(); return; }
 
   if (ev._from != null) {          // moving one occurrence moves the series
-    const snap = snapshotYears(ev._from);
+    pushUndo('moving the series', ev._from);
     moveSeriesTo(ev, targetDate, null);
     renderCalendar();
-    showToast('Series moved.', snap);
+    showToast('Series moved.');
     return;
   }
 
   const origYear = parseDate(ev.startDate).year;
   const newYear  = parseDate(targetDate).year;
-  const snap = snapshotYears(origYear, newYear);
+  pushUndo('moving the event', origYear, newYear);
 
   allEvents[origYear] = (allEvents[origYear] || []).filter(x => x.id !== ev.id);
   persist(origYear);
@@ -3469,7 +3516,7 @@ function onChipDragEnd(e) {
   allEvents[newYear].push({ ...ev, startDate: targetDate, endDate: null });
   persist(newYear);
   renderCalendar();
-  showToast('Event moved.', snap);
+  showToast('Event moved.');
 }
 
 // ── Chip resize-to-extend ────────────────────────────────────
@@ -3545,15 +3592,15 @@ function onChipResizeEnd(e) {
   if (!targetDate || targetDate === startDate) return;
 
   if (ev._from != null) {          // extending one occurrence extends the series
-    const snap = snapshotYears(ev._from);
+    pushUndo('resizing the series', ev._from);
     moveSeriesTo(ev, startDate, targetDate);
     renderCalendar();
-    showToast('Series resized.', snap);
+    showToast('Series resized.');
     return;
   }
 
   const year = parseDate(startDate).year;
-  const snap = snapshotYears(year);
+  pushUndo('resizing the event', year);
   const arr  = allEvents[year] || [];
   const idx  = arr.findIndex(x => x.id === ev.id);
   if (idx !== -1) arr[idx] = { ...arr[idx], endDate: targetDate };
@@ -3561,7 +3608,7 @@ function onChipResizeEnd(e) {
   allEvents[year] = arr;
   persist(year);
   renderCalendar();
-  showToast('Event resized.', snap);
+  showToast('Event resized.');
 }
 
 // ── Categories ───────────────────────────────────────────────
@@ -3756,14 +3803,27 @@ function renderCatSelect() {
 
 // ── Category Manager ─────────────────────────────────────────
 let stagedCats = [];
+// Category armed for deletion, held by id rather than row index so a reorder
+// mid-decision can't retarget the warning at the wrong row.
+let pendingDelId = null;
+
+// An event stores a category id, so dropping the category leaves it grey and
+// unlabeled. Count the stored records — a yearly repeat is stored once — so
+// the warning can say how much is affected.
+function countCatEvents(catId) {
+  return Object.values(allEvents)
+    .reduce((n, list) => n + (list || []).filter(e => e.category === catId).length, 0);
+}
 
 function openCatManager() {
   stagedCats = categories.map(c => ({ ...c }));
+  pendingDelId = null;
   renderCatManager();
   document.getElementById('cat-manager-bg').classList.remove('hidden');
 }
 
 function closeCatManager() {
+  pendingDelId = null;   // else Escape would keep swallowing the toast dismissal
   document.getElementById('cat-manager-bg').classList.add('hidden');
 }
 
@@ -3787,6 +3847,17 @@ function renderCatManager() {
     const solidActive  = cat.style === 'solid'  ? ' active' : '';
     const dashedActive = cat.style === 'dashed' ? ' active' : '';
     const canDel = stagedCats.length > 1 ? '' : ' disabled';
+    if (cat.id === pendingDelId) {
+      const n = countCatEvents(cat.id);
+      const toll = n
+        ? `${n} ${n === 1 ? 'event' : 'events'} will keep ${n === 1 ? 'its' : 'their'} dates but lose this color.`
+        : 'Nothing is using it.';
+      return `<div class="cat-row confirming" data-idx="${i}" data-id="${cat.id}">
+        <div class="cat-del-warn">Delete <strong class="cat-del-name"></strong>? <span>${toll}</span></div>
+        <button class="btn-cancel cat-del-no">Cancel</button>
+        <button class="btn-del cat-del-yes">Delete</button>
+      </div>`;
+    }
     return `<div class="cat-row" data-idx="${i}" data-id="${cat.id}">
       <button class="cat-grip" data-idx="${i}" title="Drag to reorder, or use the arrow keys"
               aria-label="Reorder ${cat.label}, position ${i + 1} of ${stagedCats.length}">${GRIP_ICON}</button>
@@ -3810,20 +3881,47 @@ function renderCatManager() {
     inp.addEventListener('input', e => { stagedCats[+e.target.dataset.idx].label = e.target.value; });
   });
   list.querySelectorAll('.cat-style-btn').forEach(btn => {
-    btn.addEventListener('click', e => {
-      const idx = +e.target.dataset.idx;
-      stagedCats[idx].style = e.target.dataset.style;
+    btn.addEventListener('click', () => {
+      stagedCats[+btn.dataset.idx].style = btn.dataset.style;
       renderCatManager();
     });
   });
+  // Read the index off the button itself, not the event target — the icon
+  // inside swallows the click, and its missing data-idx would splice at 0.
   list.querySelectorAll('.cat-del-btn').forEach(btn => {
-    btn.addEventListener('click', e => {
-      const idx = +e.target.dataset.idx;
+    btn.addEventListener('click', () => {
       if (stagedCats.length <= 1) return;
-      stagedCats.splice(idx, 1);
+      pendingDelId = stagedCats[+btn.dataset.idx].id;
       renderCatManager();
     });
   });
+  list.querySelectorAll('.cat-del-no').forEach(btn => {
+    btn.addEventListener('click', () => cancelStagedDel());
+  });
+  list.querySelectorAll('.cat-del-yes').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = stagedCats.findIndex(c => c.id === pendingDelId);
+      pendingDelId = null;
+      if (idx >= 0 && stagedCats.length > 1) stagedCats.splice(idx, 1);
+      renderCatManager();
+    });
+  });
+
+  if (pendingDelId) {
+    // The label is user-typed, so it goes in as text rather than markup.
+    const armed = stagedCats.find(c => c.id === pendingDelId);
+    const nameEl = list.querySelector('.cat-del-name');
+    if (nameEl && armed) nameEl.textContent = armed.label;
+    // Cancel is the safe default, so that is where the keyboard lands.
+    list.querySelector('.cat-del-no')?.focus();
+  }
+}
+
+function cancelStagedDel() {
+  if (!pendingDelId) return false;
+  pendingDelId = null;
+  renderCatManager();
+  return true;
 }
 
 // Reordering runs on plain mouse events, the same way event bars are dragged
@@ -4027,9 +4125,12 @@ document.addEventListener('keydown', e => {
     return;
   }
 
-  // Escape dismisses a pending undo; Ctrl/Cmd+Z takes it.
-  if (e.key === 'Escape' && _undo) { hideToast(); return; }
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && _undo) {
+  // Escape backs out of an armed category delete first, then a pending undo.
+  if (e.key === 'Escape') {
+    if (!cancelStagedDel()) hideToast();
+    return;
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && _undoStack.length) {
     e.preventDefault();
     performUndo();
     return;
@@ -4073,6 +4174,7 @@ document.getElementById('today-btn').addEventListener('click', goToToday);
 
 // ── Toast wiring ─────────────────────────────────────────────
 document.getElementById('toast-undo').addEventListener('click', performUndo);
+document.getElementById('undo-btn').addEventListener('click', performUndo);
 
 // ── Zoom and Fit ─────────────────────────────────────────────
 // Two separate mechanisms, deliberately:
@@ -5343,6 +5445,9 @@ sb.auth.onAuthStateChange((event, session) => {
   if (event === 'SIGNED_OUT') {
     clearLocalCache();
     allEvents = {};
+    // The stack holds snapshots of the plan that just left with them.
+    _undoStack = [];
+    updateUndoBtn();
   }
 
   document.getElementById('acct-email').textContent = '';
