@@ -902,7 +902,8 @@
       transition: background var(--duration, 200ms) var(--ease-standard);
       flex-shrink: 0;
     }
-    .cat-mgr-btn:hover { background: var(--accent); }
+    .cat-mgr-btn:hover:not(:disabled) { background: var(--accent); }
+    .cat-mgr-btn:disabled { opacity: .4; cursor: default; }
     .cat-mgr-btn svg { flex-shrink: 0; }
 
     .cat-row {
@@ -1766,6 +1767,10 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/></svg>
         Today
       </button>
+      <button class="cat-mgr-btn" id="undo-btn" disabled title="Nothing to undo">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
+        Undo
+      </button>
       <div class="sep"></div>
       <button class="cat-mgr-btn" id="cat-mgr-btn" title="Manage categories">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>
@@ -2191,7 +2196,12 @@ function dominantMonthFor(ev, year) {
 // Cheap (these arrays are small) and immune to drift, since it restores
 // state wholesale rather than trying to invert each operation.
 
-let _undo      = null;
+// Undo is a stack of snapshots rather than one slot that the toast owned and
+// cleared on its way out — which meant a mistake was only reversible for the
+// six seconds the toast was up, and creating or editing an event was never
+// reversible at all. The header button reaches the whole stack.
+const UNDO_MAX = 25;
+let _undoStack  = [];
 let _toastTimer = null;
 const TOAST_MS = 6000;
 
@@ -2204,8 +2214,36 @@ function snapshotYears(...years) {
   return snap;
 }
 
-function showToast(message, snap) {
-  _undo = snap;
+// Call before mutating, naming the action for the button's tooltip.
+function pushUndo(label, ...years) {
+  _undoStack.push({ label, snap: snapshotYears(...years) });
+  if (_undoStack.length > UNDO_MAX) _undoStack.shift();
+  updateUndoBtn();
+}
+
+function updateUndoBtn() {
+  const btn = document.getElementById('undo-btn');
+  if (!btn) return;
+  const next = _undoStack[_undoStack.length - 1];
+  btn.disabled = !next;
+  btn.title = next ? `Undo ${next.label} (${navigator.platform.includes('Mac') ? '⌘' : 'Ctrl+'}Z)`
+                   : 'Nothing to undo';
+}
+
+function performUndo() {
+  const step = _undoStack.pop();
+  if (!step) return;
+  for (const [y, list] of Object.entries(step.snap)) {
+    allEvents[+y] = list;
+    persist(+y);
+  }
+  updateUndoBtn();
+  hideToast();
+  renderCalendar();
+  showToast(`Undid ${step.label}.`);
+}
+
+function showToast(message) {
   document.getElementById('toast-msg').textContent = message;
   const toast = document.getElementById('toast');
   toast.classList.add('show');
@@ -2213,20 +2251,10 @@ function showToast(message, snap) {
   _toastTimer = setTimeout(hideToast, TOAST_MS);
 }
 
+// The toast going away no longer takes the undo with it.
 function hideToast() {
   document.getElementById('toast').classList.remove('show');
   clearTimeout(_toastTimer);
-  _undo = null;
-}
-
-function performUndo() {
-  if (!_undo) return;
-  for (const [y, list] of Object.entries(_undo)) {
-    allEvents[+y] = list;
-    persist(+y);
-  }
-  hideToast();
-  renderCalendar();
 }
 
 // ── Yearly repeats ───────────────────────────────────────────
@@ -3150,6 +3178,11 @@ function saveEvent() {
     endDate   = end ? shiftDateToYear(end, editFrom + span) : null;
   }
 
+  // Creating and editing were the two things undo never covered, and editing
+  // is the easiest to get wrong. saveEvent only ever mutates allEvents[year],
+  // so that is the whole of what has to be captured.
+  pushUndo(editId ? 'editing the event' : 'adding the event', year);
+
   if (!allEvents[year]) allEvents[year] = [];
 
   const record = { id: editId || uid(), title, category: cat,
@@ -3178,13 +3211,13 @@ function deleteEvent() {
   const year = editFrom != null ? editFrom : parseDate(start).year;
   const wasSeries = editFrom != null ||
     (allEvents[year] || []).find(e => e.id === editId)?.repeat === 'yearly';
-  const snap = snapshotYears(year);
+  pushUndo(wasSeries ? 'deleting the series' : 'deleting the event', year);
 
   allEvents[year] = (allEvents[year] || []).filter(e => e.id !== editId);
   persist(year);
   closeModal();
   renderCalendar();
-  showToast(wasSeries ? 'Series deleted.' : 'Event deleted.', snap);
+  showToast(wasSeries ? 'Series deleted.' : 'Event deleted.');
 }
 
 // ── Export PNG ───────────────────────────────────────────────
@@ -3326,16 +3359,16 @@ function onDragEnd(e) {
   // Dragging a projected occurrence retargets the stored original, so the
   // whole series moves instead of forking a copy into the year on screen.
   if (ev._from != null) {
-    const snap = snapshotYears(ev._from);
+    pushUndo(`${verb === 'moved' ? 'moving' : 'resizing'} the series`, ev._from);
     moveSeriesTo(ev, newStart, newEnd);
     renderCalendar();
-    showToast(`Series ${verb}.`, snap);
+    showToast(`Series ${verb}.`);
     return;
   }
 
   const origYear = parseDate(ev.startDate).year;
   const newYear  = parseDate(newStart).year;
-  const snap = snapshotYears(origYear, newYear);
+  pushUndo(`${verb === 'moved' ? 'moving' : 'resizing'} the event`, origYear, newYear);
 
   allEvents[origYear] = (allEvents[origYear] || []).filter(x => x.id !== ev.id);
   persist(origYear);
@@ -3347,7 +3380,7 @@ function onDragEnd(e) {
   });
   persist(newYear);
   renderCalendar();
-  showToast(`Event ${verb}.`, snap);
+  showToast(`Event ${verb}.`);
 }
 
 // Re-anchor a repeating series onto new dates, expressed in whatever year the
@@ -3452,16 +3485,16 @@ function onChipDragEnd(e) {
   if (!targetDate || targetDate === ev.startDate) { renderCalendar(); return; }
 
   if (ev._from != null) {          // moving one occurrence moves the series
-    const snap = snapshotYears(ev._from);
+    pushUndo('moving the series', ev._from);
     moveSeriesTo(ev, targetDate, null);
     renderCalendar();
-    showToast('Series moved.', snap);
+    showToast('Series moved.');
     return;
   }
 
   const origYear = parseDate(ev.startDate).year;
   const newYear  = parseDate(targetDate).year;
-  const snap = snapshotYears(origYear, newYear);
+  pushUndo('moving the event', origYear, newYear);
 
   allEvents[origYear] = (allEvents[origYear] || []).filter(x => x.id !== ev.id);
   persist(origYear);
@@ -3469,7 +3502,7 @@ function onChipDragEnd(e) {
   allEvents[newYear].push({ ...ev, startDate: targetDate, endDate: null });
   persist(newYear);
   renderCalendar();
-  showToast('Event moved.', snap);
+  showToast('Event moved.');
 }
 
 // ── Chip resize-to-extend ────────────────────────────────────
@@ -3545,15 +3578,15 @@ function onChipResizeEnd(e) {
   if (!targetDate || targetDate === startDate) return;
 
   if (ev._from != null) {          // extending one occurrence extends the series
-    const snap = snapshotYears(ev._from);
+    pushUndo('resizing the series', ev._from);
     moveSeriesTo(ev, startDate, targetDate);
     renderCalendar();
-    showToast('Series resized.', snap);
+    showToast('Series resized.');
     return;
   }
 
   const year = parseDate(startDate).year;
-  const snap = snapshotYears(year);
+  pushUndo('resizing the event', year);
   const arr  = allEvents[year] || [];
   const idx  = arr.findIndex(x => x.id === ev.id);
   if (idx !== -1) arr[idx] = { ...arr[idx], endDate: targetDate };
@@ -3561,7 +3594,7 @@ function onChipResizeEnd(e) {
   allEvents[year] = arr;
   persist(year);
   renderCalendar();
-  showToast('Event resized.', snap);
+  showToast('Event resized.');
 }
 
 // ── Categories ───────────────────────────────────────────────
@@ -4028,8 +4061,8 @@ document.addEventListener('keydown', e => {
   }
 
   // Escape dismisses a pending undo; Ctrl/Cmd+Z takes it.
-  if (e.key === 'Escape' && _undo) { hideToast(); return; }
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && _undo) {
+  if (e.key === 'Escape') { hideToast(); return; }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && _undoStack.length) {
     e.preventDefault();
     performUndo();
     return;
@@ -4073,6 +4106,7 @@ document.getElementById('today-btn').addEventListener('click', goToToday);
 
 // ── Toast wiring ─────────────────────────────────────────────
 document.getElementById('toast-undo').addEventListener('click', performUndo);
+document.getElementById('undo-btn').addEventListener('click', performUndo);
 
 // ── Zoom and Fit ─────────────────────────────────────────────
 // Two separate mechanisms, deliberately:
@@ -5343,6 +5377,9 @@ sb.auth.onAuthStateChange((event, session) => {
   if (event === 'SIGNED_OUT') {
     clearLocalCache();
     allEvents = {};
+    // The stack holds snapshots of the plan that just left with them.
+    _undoStack = [];
+    updateUndoBtn();
   }
 
   document.getElementById('acct-email').textContent = '';
