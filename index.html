@@ -1921,6 +1921,22 @@
     .m-sheet-list .m-ev { cursor: pointer; }
     .m-sheet-empty { font: var(--weight-normal) 14px/1.4 var(--font); color: var(--muted-foreground); }
 
+    /* The event editor and both managers present as bottom sheets on mobile.
+       Presentation only: same markup, same handlers, same ids. */
+    body.mobile .modal-bg { align-items: flex-end; }
+    body.mobile .modal {
+      width: 100%; max-width: 100%;
+      max-height: calc(100vh - 48px);
+      border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+      padding: 20px 16px calc(20px + env(safe-area-inset-bottom, 0px));
+    }
+    /* The slide-up reads as a sheet; skipped for reduced motion below. */
+    body.mobile .modal-bg:not(.hidden) > .modal { animation: m-sheet-up var(--duration-200, 200ms) var(--ease-standard); }
+    @keyframes m-sheet-up { from { transform: translateY(24px); opacity: .6; } }
+    @media (prefers-reduced-motion: reduce) {
+      body.mobile .modal-bg:not(.hidden) > .modal { animation: none; }
+    }
+
   </style>
 </head>
 <body class="chrome-off">
@@ -4949,7 +4965,9 @@ document.getElementById('emoji-pop').addEventListener('keydown', e => {
 });
 
 // A click anywhere else closes the picker without stealing focus.
-document.addEventListener('mousedown', e => {
+// pointerdown, not mousedown: on touch the synthesized mouse events arrive
+// late or not at all, which left the popover stuck open on a phone.
+document.addEventListener('pointerdown', e => {
   if (document.getElementById('emoji-pop').classList.contains('hidden')) return;
   if (e.target.closest('.fld-emoji')) return;
   closeEmojiPop(false);
@@ -5394,8 +5412,9 @@ document.getElementById('size-lock').addEventListener('click', () => {
   setSizeLocked(!sizeLocked);
 });
 
-// Click-away and Escape close the panel.
-document.addEventListener('mousedown', e => {
+// Click-away and Escape close the panel. pointerdown for the same reason as
+// the emoji popover: a tap must count as the click-away.
+document.addEventListener('pointerdown', e => {
   if (sizePanelOpen() && !$sizePanel.contains(e.target)) closeSizePanel();
 });
 document.addEventListener('keydown', e => {
