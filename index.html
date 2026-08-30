@@ -1591,8 +1591,11 @@
       .lp-headline { font-size: 40px; }
       .lp-nav { flex-wrap: wrap; gap: 12px; }
       .lp-nav-actions { gap: 16px; }
-      .lp-story-art { padding: 16px; min-height: 240px; }
-      /* The stone composition is a fixed size; shrink it rather than clip. */
+      /* min-width:0 lets the single column shrink to the phone; the art card
+         clips the stone composition's layout box, whose transform scale
+         shrinks it visually but not in layout. */
+      .lp-story > * { min-width: 0; }
+      .lp-story-art { padding: 16px; min-height: 240px; overflow: hidden; }
       .lp-stones { transform: scale(0.78); }
       .lp-wall { padding: 24px 20px; }
       .lp-closing-ttl { font-size: 24px; }
