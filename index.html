@@ -933,15 +933,31 @@
 
     .cat-row.dragging { opacity: .4; }
 
-    .cat-color-inp {
+    .cat-swatch {
       width: 36px; height: 36px;
       border-radius: var(--radius-md);
       border: 1px solid var(--input);
       cursor: pointer;
-      padding: 2px;
+      padding: 0;
       flex-shrink: 0;
-      background: none;
     }
+
+    .cat-hex-inp {
+      width: 84px; flex-shrink: 0;
+      padding: 8px 6px;
+      border: 1px solid var(--input);
+      border-radius: var(--radius-md);
+      font: var(--weight-normal) 13px/1.2 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      color: var(--foreground);
+      background: var(--background);
+      text-align: center;
+      outline: none;
+      transition: border-color var(--duration, 200ms) var(--ease-standard),
+                  box-shadow var(--duration, 200ms) var(--ease-standard);
+    }
+    .cat-hex-inp:focus { border-color: var(--ring); box-shadow: 0 0 0 2px var(--popover), 0 0 0 4px var(--ring); }
+    /* Marked while the text isn't yet a colour, rather than reverting mid-typing. */
+    .cat-hex-inp.bad { border-color: var(--destructive); }
 
     .cat-name-inp {
       flex: 1;
@@ -1896,7 +1912,7 @@
 
 <!-- Category Manager Modal -->
 <div class="modal-bg hidden" id="cat-manager-bg">
-  <div class="modal" style="width:520px;max-width:96vw">
+  <div class="modal" style="width:600px;max-width:96vw">
     <div class="modal-head">
       <div>
         <div class="modal-ttl">Manage categories</div>
@@ -3729,6 +3745,14 @@ function applyTitleScale(el, ev) {
   if (n > 0 && n !== 1) el.style.setProperty('--title-scale', String(n));
 }
 
+// Accepts what people actually type: #d33003, d33003, #D33003, or the
+// three-digit shorthand #f00. Returns null while the text isn't a colour yet.
+function normalizeHex(raw) {
+  let v = (raw || '').trim().replace(/^#/, '').toLowerCase();
+  if (/^[0-9a-f]{3}$/.test(v)) v = v.split('').map(c => c + c).join('');
+  return /^[0-9a-f]{6}$/.test(v) ? '#' + v : null;
+}
+
 function applyCatStyle(el, catId) {
   const cat = getCat(catId);
   if (!cat) {
@@ -3861,7 +3885,11 @@ function renderCatManager() {
     return `<div class="cat-row" data-idx="${i}" data-id="${cat.id}">
       <button class="cat-grip" data-idx="${i}" title="Drag to reorder, or use the arrow keys"
               aria-label="Reorder ${cat.label}, position ${i + 1} of ${stagedCats.length}">${GRIP_ICON}</button>
-      <input type="color" class="cat-color-inp" value="${cat.color}" data-idx="${i}" title="Pick color">
+      <button type="button" class="cat-swatch" data-idx="${i}" tabindex="-1"
+              aria-hidden="true" style="background:${cat.color}"></button>
+      <input type="text" class="cat-hex-inp" value="${cat.color}" data-idx="${i}"
+             maxlength="7" spellcheck="false" autocapitalize="off" autocomplete="off"
+             aria-label="Category colour, hex" placeholder="#000000" title="Type a hex colour, e.g. #d33003">
       <input type="text"  class="cat-name-inp"  value="${cat.label}" data-idx="${i}" maxlength="40" placeholder="Category name">
       <div class="cat-style-grp">
         <button class="cat-style-btn${solidActive}"  data-idx="${i}" data-style="solid">Solid</button>
@@ -3874,8 +3902,35 @@ function renderCatManager() {
   wireCatReorder(list);
 
   // Bind events on the freshly-rendered rows
-  list.querySelectorAll('.cat-color-inp').forEach(inp => {
-    inp.addEventListener('input', e => { stagedCats[+e.target.dataset.idx].color = e.target.value; });
+  // The swatch is a preview, not a control — the browser's own colour dialog
+  // is where the RGB boxes came from, and it can't be restyled from here, so
+  // the hex field replaces it outright. Clicking the swatch just aims at it.
+  list.querySelectorAll('.cat-swatch').forEach(sw => {
+    sw.addEventListener('click', () => {
+      const hex = sw.parentElement.querySelector('.cat-hex-inp');
+      if (hex) { hex.focus(); hex.select(); }
+    });
+  });
+
+  list.querySelectorAll('.cat-hex-inp').forEach(hex => {
+    const swatch = hex.parentElement.querySelector('.cat-swatch');
+    hex.addEventListener('input', () => {
+      const parsed = normalizeHex(hex.value);
+      hex.classList.toggle('bad', !parsed);
+      if (!parsed) return;                       // half-typed: leave it be
+      stagedCats[+hex.dataset.idx].color = parsed;
+      if (swatch) swatch.style.background = parsed;
+    });
+    // Leaving the field settles it: either tidied into #rrggbb, or put back to
+    // the colour that is actually stored, so nothing is left looking unsaved.
+    hex.addEventListener('blur', () => {
+      const parsed = normalizeHex(hex.value);
+      hex.value = parsed || stagedCats[+hex.dataset.idx].color;
+      if (swatch) swatch.style.background = hex.value;
+      hex.classList.remove('bad');
+    });
+    // Enter would otherwise submit nothing and leave the field mid-edit.
+    hex.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); hex.blur(); } });
   });
   list.querySelectorAll('.cat-name-inp').forEach(inp => {
     inp.addEventListener('input', e => { stagedCats[+e.target.dataset.idx].label = e.target.value; });
