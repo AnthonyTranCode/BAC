@@ -1853,14 +1853,21 @@
       overflow: hidden; overflow-wrap: break-word;
       box-shadow: var(--shadow-sm);
       cursor: pointer;
+      /* Centred both ways, like the desktop bars and chips. `safe` keeps a
+         title taller than a one-day card clipping at the bottom only, rather
+         than losing both ends. */
+      display: flex; flex-direction: column;
+      justify-content: safe center;
+      text-align: center;
     }
     .m-tl-ev .m-cont { font-weight: var(--weight-normal); opacity: .7; font-size: 11px; }
     .m-tl-hol {
       background: var(--muted); color: var(--foreground);
       font-size: 10px; font-weight: var(--weight-normal);
       padding: 4px 5px;
-      white-space: nowrap; text-overflow: ellipsis;
+      white-space: nowrap;
       cursor: default; box-shadow: none;
+      display: block; text-overflow: ellipsis;   /* ellipsis needs block, not flex */
     }
 
     /* The event editor and both managers present as bottom sheets on mobile.
