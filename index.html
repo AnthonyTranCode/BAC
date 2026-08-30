@@ -1381,7 +1381,6 @@
        overlays, so they're taken down until the planner itself is on screen. */
     body.chrome-off .zoom-bar,
     body.chrome-off .size-panel,
-    body.chrome-off .m-tabbar,
     body.chrome-off .m-fab,
     body.chrome-off #toast { display: none !important; }
 
@@ -1735,32 +1734,13 @@
     @media (max-width: 1100px) { .acct-email { display: none; } }
 
     /* ── Mobile (body.mobile, set from matchMedia 767px) ───── */
-    .m-tabbar, .m-fab { display: none; }
+    .m-fab { display: none; }
 
     body.mobile .zoom-bar,
     body.mobile .size-panel { display: none !important; }
     body.mobile #toast { bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
 
     body.mobile .cal-wrap { padding: 0 0 calc(84px + env(safe-area-inset-bottom, 0px)); }
-
-    body.mobile .m-tabbar {
-      position: fixed; left: 50%; transform: translateX(-50%);
-      bottom: calc(14px + env(safe-area-inset-bottom, 0px));
-      z-index: 90;
-      display: flex; gap: 4px; padding: 4px;
-      background: var(--primary);
-      border-radius: var(--radius-full);
-      box-shadow: var(--shadow-xl);
-    }
-    .m-tab {
-      height: 36px; padding: 0 18px;
-      border: none; border-radius: var(--radius-full);
-      background: transparent; color: var(--primary-foreground);
-      font: var(--weight-medium) 14px/1 var(--font);
-      opacity: .65; cursor: pointer;
-    }
-    .m-tab.active { background: var(--primary-foreground); color: var(--primary); opacity: 1; }
-    .m-tab:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
 
     body.mobile .m-fab {
       position: fixed; right: 16px;
@@ -1773,55 +1753,6 @@
       box-shadow: var(--shadow-xl); cursor: pointer;
     }
     .m-fab:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
-
-    /* Month view */
-    .m-head {
-      position: sticky; top: 0; z-index: 20;
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 10px 12px;
-      background: var(--bg-page);
-      border-bottom: 1px solid var(--border);
-    }
-    .m-head-ttl { font: var(--weight-medium) 17px/1 var(--font); letter-spacing: -0.01em; }
-    .m-nav {
-      display: flex; align-items: center; justify-content: center;
-      width: 40px; height: 40px;
-      border: 1px solid var(--input); border-radius: var(--radius-full);
-      background: var(--background); color: var(--foreground); cursor: pointer;
-    }
-    .m-nav:disabled { opacity: .35; cursor: default; }
-    .m-nav:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
-
-    .m-day {
-      display: flex; align-items: stretch; gap: 10px;
-      min-height: 44px; padding: 5px 12px 5px 8px;
-      border-bottom: 1px solid var(--border);
-      background: var(--background);
-      cursor: pointer;
-    }
-    .m-day.weekend { background: var(--secondary); }
-    .m-gut {
-      width: 46px; flex-shrink: 0;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 1px;
-    }
-    .m-dow { font: var(--weight-normal) 10px/1 var(--font); color: var(--muted-foreground); text-transform: uppercase; letter-spacing: .06em; }
-    .m-num {
-      display: flex; align-items: center; justify-content: center;
-      width: 26px; height: 26px; border-radius: 50%;
-      font: var(--weight-medium) 14px/1 var(--font);
-      font-variant-numeric: tabular-nums;
-    }
-    .m-day.today .m-num { background: var(--primary); color: var(--primary-foreground); }
-    .m-evs { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; justify-content: center; }
-    .m-ev {
-      padding: 7px 10px;
-      border-radius: var(--radius-md);
-      font: var(--weight-medium) 14px/1.25 var(--font);
-      overflow-wrap: break-word; min-width: 0;
-    }
-    .m-ev .m-cont { font-weight: var(--weight-normal); opacity: .7; font-size: 12px; }
-    .m-ev.m-hol { background: var(--muted); color: var(--foreground); }
 
     /* Compact header: title, year nav, sync dot, overflow menu. The wide
        header's flex-shrink:0 controls are what forced horizontal scroll. */
@@ -1861,68 +1792,76 @@
     .m-menu button:disabled { opacity: .4; }
     .m-menu button:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
 
-    /* Year view: months across, days down, colour only. */
-    .m-year { padding: 0 8px; }
-    .m-yr-head {
-      position: sticky; top: 0; z-index: 20;
-      display: grid; grid-template-columns: 26px repeat(12, 1fr);
+    /* ── The timeline: months across, days down ── */
+    .m-tl {
+      --m-col: max(112px, calc((100vw - 34px) / 3));
+      display: flex; width: max-content;
+      background: var(--background);
+    }
+
+    .m-tl-gut {
+      position: sticky; left: 0; z-index: 30;
+      width: 34px; flex-shrink: 0;
       background: var(--bg-page);
-      padding: 8px 0 4px;
+      border-right: 1px solid var(--border);
     }
-    .m-yr-head button {
-      border: none; background: none; padding: 6px 0;
-      font: var(--weight-medium) 12px/1 var(--font);
-      color: var(--muted-foreground); cursor: pointer;
+    .m-tl-corner {
+      position: sticky; top: 0; z-index: 5;
+      height: 38px; background: var(--bg-page);
+      border-bottom: 1px solid var(--border);
     }
-    .m-yr-head button:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
-    .m-yr-row { display: grid; grid-template-columns: 26px repeat(12, 1fr); }
-    .m-yr-num {
-      display: flex; align-items: center;
-      font: var(--weight-normal) 10px/1 var(--font);
+    .m-tl-daynum {
+      height: 44px;                     /* M_ROW */
+      display: flex; align-items: center; justify-content: center;
+      font: var(--weight-normal) 11px/1 var(--font);
       color: var(--muted-foreground);
       font-variant-numeric: tabular-nums;
+      border-bottom: 1px solid var(--border);
     }
-    .m-yr-cell {
-      height: 22px; margin: 1px;
-      border-radius: 3px;
+
+    .m-tl-col {
+      width: var(--m-col); flex-shrink: 0;
+      border-right: 1px solid var(--border);
+    }
+    .m-tl-mon {
+      position: sticky; top: 0; z-index: 20;
+      height: 38px;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--bg-page);
+      border-bottom: 1px solid var(--border);
+      font: var(--weight-medium) 13px/1 var(--font);
+      letter-spacing: .02em;
+    }
+    .m-tl-cells { position: relative; }
+    .m-tl-cell {
+      height: 44px;                     /* M_ROW */
+      border-bottom: 1px solid var(--border);
       background: var(--bg-cell);
-      border: 1px solid var(--border);
-      display: flex; flex-direction: column; overflow: hidden;
-      padding: 0; cursor: pointer;
+      cursor: pointer;
     }
-    .m-yr-cell.inactive { background: var(--bg-inactive); border-color: transparent; cursor: default; }
-    .m-yr-cell.weekend:not(.inactive) { background: var(--bg-weekend); }
-    .m-yr-cell.today { outline: 2px solid var(--primary); outline-offset: -1px; }
-    .m-yr-cell:focus-visible { outline: 2px solid var(--ring); outline-offset: -1px; }
-    .m-yr-slice { flex: 1; }
-    .m-yr-slice.dashed { background: transparent !important; border: 1.5px dashed currentColor; border-radius: 2px; margin: 1px; }
+    .m-tl-cell.weekend { background: var(--bg-weekend); }
+    .m-tl-cell.inactive { background: var(--bg-inactive); cursor: default; }
+    .m-tl-cell.today { box-shadow: inset 0 0 0 2px var(--primary); }
 
-    .m-yr-legend {
-      display: flex; flex-wrap: wrap; gap: 8px 14px;
-      padding: 14px 4px 10px;
+    /* Cards: one unbroken block per event span, Todoist-style, overlaps
+       sharing the column side by side. */
+    .m-tl-ev {
+      position: absolute; z-index: 5;
+      border-radius: var(--radius-md);
+      padding: 6px 7px;
+      font: var(--weight-medium) 13px/1.25 var(--font);
+      overflow: hidden; overflow-wrap: break-word;
+      box-shadow: var(--shadow-sm);
+      cursor: pointer;
     }
-    .m-yr-legend span { display: flex; align-items: center; gap: 6px; font: var(--weight-normal) 12px/1 var(--font); }
-    .m-yr-legend i { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
-
-    /* Day sheet */
-    .m-sheet-bg {
-      position: fixed; inset: 0; z-index: 500;
-      background: rgb(16 16 15 / 0.4);
-      display: flex; align-items: flex-end;
+    .m-tl-ev .m-cont { font-weight: var(--weight-normal); opacity: .7; font-size: 11px; }
+    .m-tl-hol {
+      background: var(--muted); color: var(--foreground);
+      font-size: 10px; font-weight: var(--weight-normal);
+      padding: 4px 5px;
+      white-space: nowrap; text-overflow: ellipsis;
+      cursor: default; box-shadow: none;
     }
-    .m-sheet-bg.hidden { display: none; }
-    .m-sheet {
-      width: 100%; max-height: 70vh; overflow-y: auto;
-      background: var(--popover); color: var(--popover-foreground);
-      border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
-      padding: 8px 16px calc(16px + env(safe-area-inset-bottom, 0px));
-      display: flex; flex-direction: column; gap: 12px;
-    }
-    .m-sheet-grab { width: 36px; height: 4px; border-radius: 2px; background: var(--muted); margin: 4px auto 0; }
-    .m-sheet-ttl { font: var(--weight-medium) 17px/1.2 var(--font); }
-    .m-sheet-list { display: flex; flex-direction: column; gap: 6px; }
-    .m-sheet-list .m-ev { cursor: pointer; }
-    .m-sheet-empty { font: var(--weight-normal) 14px/1.4 var(--font); color: var(--muted-foreground); }
 
     /* The event editor and both managers present as bottom sheets on mobile.
        Presentation only: same markup, same handlers, same ids. */
@@ -2134,21 +2073,7 @@
 </div>
 
 <!-- Manual sizing panel -->
-<!-- Mobile day sheet: read-only look at one day from the Year view -->
-<div class="m-sheet-bg hidden" id="m-sheet-bg">
-  <div class="m-sheet" role="dialog" aria-modal="true" aria-labelledby="m-sheet-ttl">
-    <div class="m-sheet-grab" aria-hidden="true"></div>
-    <div class="m-sheet-ttl" id="m-sheet-ttl"></div>
-    <div class="m-sheet-list" id="m-sheet-list"></div>
-    <button type="button" class="btn-save" id="m-sheet-add">Add event</button>
-  </div>
-</div>
-
-<!-- Mobile chrome: bottom tab bar + floating add. Hidden on desktop. -->
-<nav class="m-tabbar" id="m-tabbar" aria-label="Calendar views">
-  <button type="button" class="m-tab active" id="m-tab-month" aria-pressed="true">Month</button>
-  <button type="button" class="m-tab" id="m-tab-year" aria-pressed="false">Year</button>
-</nav>
+<!-- Mobile chrome: floating add. Hidden on desktop. -->
 <button type="button" class="m-fab" id="m-fab" aria-label="Add event">
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
 </button>
@@ -2680,6 +2605,11 @@ const FIT_EPS = 2;   // slack so sub-pixel rounding can't tip Fit into overflow
 // A separate, additive render path below 768px. The desktop grid, its drag
 // handlers, Fit and zoom are untouched: mobile renders its own markup into
 // #cal-grid, so none of the desktop selectors match anything while it is up.
+//
+// One continuous timeline, the desktop grid turned on its side: months run
+// across, days run down, and a multi-day event is one unbroken card spanning
+// its days instead of a repeated row per day. About three months are on
+// screen at a time; both axes scroll, the day gutter and month names stick.
 const mqMobile = matchMedia('(max-width: 767px)');
 function isMobile() { return mqMobile.matches; }
 
@@ -2688,9 +2618,6 @@ function syncModeClass() {
   document.body.classList.toggle('desktop', !isMobile());
 }
 syncModeClass();
-
-let mobileView  = 'month';   // 'month' | 'year'
-let mobileMonth = null;      // 0–11; null until first mobile render
 
 mqMobile.addEventListener('change', () => {
   syncModeClass();
@@ -2704,282 +2631,150 @@ mqMobile.addEventListener('change', () => {
   if (!isMobile() && !fitMode) setZoom(curZoom, { keepFit: true });
 });
 
-function currentMobileMonth() {
-  if (mobileMonth === null) {
-    const t = parseDate(todayStr());
-    mobileMonth = t.year === curYear ? t.month : 0;
-  }
-  return mobileMonth;
-}
+const M_ROW = 44;            // px per day row — the tap target
+let _mScrolledToToday = false;
 
-function shiftMobileMonth(delta) {
-  let m = currentMobileMonth() + delta;
-  // Walking past the ends of the year carries into the neighbouring year,
-  // matching how the desktop grid rolls over via the year arrows.
-  if (m < 0)  { if (curYear <= YEAR_MIN) return; mobileMonth = 11; setYear(curYear - 1); return; }
-  if (m > 11) { if (curYear >= YEAR_MAX) return; mobileMonth = 0;  setYear(curYear + 1); return; }
-  mobileMonth = m;
-  renderMobile();
-}
-
-// Everything the day rows need, indexed once per render pass.
-function mobileDayIndex(m) {
-  const evs  = eventsForYear(curYear);
-  const hols = loadHolidayList(curYear, curCountry);
-  const dim  = daysInMonth(curYear, m);
-  const days = [];
-  for (let d = 1; d <= dim; d++) {
-    const ds = padDate(curYear, m, d);
-    const di = dateInt(ds);
-    days.push({
-      d, ds,
-      hols: hols.filter(h => h.date === ds).map(h => h.name),
-      evs:  evs.filter(ev => {
-        const end = ev.endDate || ev.startDate;
-        return dateInt(ev.startDate) <= di && dateInt(end) >= di;
-      }).sort((a, b) => dateInt(a.startDate) - dateInt(b.startDate)),
-    });
-  }
-  return days;
-}
-
-function mobileEventEl(ev, ds) {
-  const el = document.createElement('div');
-  el.className = `m-ev cat-${ev.category}`;
-  applyCatStyle(el, ev.category);
-  const scale = Number(ev.titleScale);
-  if (scale > 0 && scale !== 1) el.style.fontSize = (14 * scale) + 'px';
-  el.textContent = (ev.emoji ? ev.emoji + ' ' : '') + ev.title;
-  if (ev.startDate !== ds) {
-    const cont = document.createElement('span');
-    cont.className = 'm-cont';
-    cont.textContent = ' · cont.';
-    el.appendChild(cont);
-  }
-  el.addEventListener('click', e => {
-    e.stopPropagation();
-    openModal(ev.startDate, ev);
+// Scroll so today's month and day sit in view. Only on the first render (and
+// from the Today button): a re-render after a save must not yank the scroll.
+function mobileScrollToToday(behavior = 'auto') {
+  const t = parseDate(todayStr());
+  if (t.year !== curYear) return;
+  const outer = document.getElementById('page-outer');
+  const col = document.querySelector(`.m-tl-col[data-month="${t.month}"]`);
+  if (!col) return;
+  outer.scrollTo({
+    left: Math.max(0, col.offsetLeft - 40),
+    top:  Math.max(0, (t.day - 1) * M_ROW - outer.clientHeight / 3),
+    behavior,
   });
-  return el;
 }
-
-function renderMobileMonth(grid) {
-  const m     = currentMobileMonth();
-  const today = todayStr();
-
-  const head = document.createElement('div');
-  head.className = 'm-head';
-  const prev = document.createElement('button');
-  prev.type = 'button'; prev.className = 'm-nav'; prev.setAttribute('aria-label', 'Previous month');
-  prev.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
-  prev.disabled = m === 0 && curYear <= YEAR_MIN;
-  prev.addEventListener('click', () => shiftMobileMonth(-1));
-  const ttl = document.createElement('div');
-  ttl.className = 'm-head-ttl';
-  ttl.textContent = `${MONTH_LG[m]} ${curYear}`;
-  const next = document.createElement('button');
-  next.type = 'button'; next.className = 'm-nav'; next.setAttribute('aria-label', 'Next month');
-  next.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>';
-  next.disabled = m === 11 && curYear >= YEAR_MAX;
-  next.addEventListener('click', () => shiftMobileMonth(1));
-  head.append(prev, ttl, next);
-  grid.appendChild(head);
-
-  const list = document.createElement('div');
-  list.className = 'm-days';
-
-  for (const day of mobileDayIndex(m)) {
-    const row = document.createElement('div');
-    const dow = getDOW(curYear, m, day.d);
-    row.className = 'm-day'
-      + ((dow === 0 || dow === 6) ? ' weekend' : '')
-      + (day.ds === today ? ' today' : '');
-    row.dataset.date = day.ds;
-
-    const gut = document.createElement('div');
-    gut.className = 'm-gut';
-    const dowEl = document.createElement('span');
-    dowEl.className = 'm-dow';
-    dowEl.textContent = DOW[dow];
-    const num = document.createElement('span');
-    num.className = 'm-num';
-    num.textContent = day.d;
-    gut.append(dowEl, num);
-
-    const evs = document.createElement('div');
-    evs.className = 'm-evs';
-    for (const name of day.hols) {
-      const h = document.createElement('div');
-      h.className = 'm-ev m-hol';
-      h.textContent = name;
-      evs.appendChild(h);
-    }
-    for (const ev of day.evs) evs.appendChild(mobileEventEl(ev, day.ds));
-
-    row.append(gut, evs);
-    // Tap-only editing: the row creates, a chip inside it edits.
-    row.addEventListener('click', () => openModal(day.ds, null));
-    list.appendChild(row);
-  }
-
-  // Swipe left/right walks the months; mostly-vertical moves stay scrolling.
-  let sx = 0, sy = 0;
-  list.addEventListener('touchstart', e => {
-    sx = e.touches[0].clientX; sy = e.touches[0].clientY;
-  }, { passive: true });
-  list.addEventListener('touchend', e => {
-    const dx = e.changedTouches[0].clientX - sx;
-    const dy = e.changedTouches[0].clientY - sy;
-    if (Math.abs(dx) > 60 && Math.abs(dy) < 40) shiftMobileMonth(dx < 0 ? 1 : -1);
-  }, { passive: true });
-
-  grid.appendChild(list);
-}
-
-// Year view: months across, days down, colour only. A cell splits into up to
-// three slices when events share the day; dashed categories keep an outline.
-function renderMobileYear(grid) {
-  const today = todayStr();
-  const evs   = eventsForYear(curYear);
-
-  const wrap = document.createElement('div');
-  wrap.className = 'm-year';
-
-  const head = document.createElement('div');
-  head.className = 'm-yr-head';
-  head.appendChild(document.createElement('span'));       // gutter spacer
-  MONTHS.forEach((name, m) => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.textContent = name[0];
-    b.setAttribute('aria-label', `${MONTH_LG[m]} — open month view`);
-    b.addEventListener('click', () => { mobileView = 'month'; mobileMonth = m; renderMobile(); });
-    head.appendChild(b);
-  });
-  wrap.appendChild(head);
-
-  for (let d = 1; d <= 31; d++) {
-    const row = document.createElement('div');
-    row.className = 'm-yr-row';
-    const num = document.createElement('span');
-    num.className = 'm-yr-num';
-    num.textContent = d;
-    row.appendChild(num);
-
-    for (let m = 0; m < 12; m++) {
-      const cell = document.createElement('button');
-      cell.type = 'button';
-      if (d > daysInMonth(curYear, m)) {
-        cell.className = 'm-yr-cell inactive';
-        cell.disabled = true;
-        cell.setAttribute('aria-hidden', 'true');
-        row.appendChild(cell);
-        continue;
-      }
-      const ds  = padDate(curYear, m, d);
-      const di  = dateInt(ds);
-      const dow = getDOW(curYear, m, d);
-      cell.className = 'm-yr-cell'
-        + ((dow === 0 || dow === 6) ? ' weekend' : '')
-        + (ds === today ? ' today' : '');
-      cell.setAttribute('aria-label', `${MONTH_LG[m]} ${d}`);
-
-      const dayEvs = evs.filter(ev => {
-        const end = ev.endDate || ev.startDate;
-        return dateInt(ev.startDate) <= di && dateInt(end) >= di;
-      });
-      for (const ev of dayEvs.slice(0, 3)) {
-        const slice = document.createElement('span');
-        slice.className = 'm-yr-slice';
-        const cat = getCat(ev.category);
-        if (cat?.style === 'dashed') {
-          slice.classList.add('dashed');
-          slice.style.color = cat.color;
-        } else {
-          slice.style.background = cat ? cat.color : 'var(--muted)';
-        }
-        cell.appendChild(slice);
-      }
-      cell.addEventListener('click', () => openMobileSheet(ds));
-      row.appendChild(cell);
-    }
-    wrap.appendChild(row);
-  }
-
-  const legend = document.createElement('div');
-  legend.className = 'm-yr-legend';
-  for (const cat of categories) {
-    const item = document.createElement('span');
-    const sw = document.createElement('i');
-    if (cat.style === 'dashed') {
-      sw.style.border = `2px dashed ${cat.color}`;
-      sw.style.background = 'transparent';
-    } else {
-      sw.style.background = cat.color;
-    }
-    item.appendChild(sw);
-    item.appendChild(document.createTextNode(cat.label));
-    legend.appendChild(item);
-  }
-  wrap.appendChild(legend);
-  grid.appendChild(wrap);
-}
-
-// Read-only day sheet: what's on this day, each row opening the editor.
-function openMobileSheet(ds) {
-  const { year, month, day } = parseDate(ds);
-  document.getElementById('m-sheet-ttl').textContent =
-    `${DOW[getDOW(year, month, day)]} · ${MONTH_LG[month]} ${day}, ${year}`;
-
-  const list = document.getElementById('m-sheet-list');
-  list.innerHTML = '';
-  const di = dateInt(ds);
-  const hols = loadHolidayList(curYear, curCountry).filter(h => h.date === ds);
-  for (const h of hols) {
-    const el = document.createElement('div');
-    el.className = 'm-ev m-hol';
-    el.textContent = h.name;
-    list.appendChild(el);
-  }
-  const dayEvs = eventsForYear(curYear).filter(ev => {
-    const end = ev.endDate || ev.startDate;
-    return dateInt(ev.startDate) <= di && dateInt(end) >= di;
-  });
-  for (const ev of dayEvs) {
-    const el = mobileEventEl(ev, ds);      // its own click opens the editor…
-    el.addEventListener('click', closeMobileSheet);  // …and the sheet gets out of the way
-    list.appendChild(el);
-  }
-  if (!hols.length && !dayEvs.length) {
-    const none = document.createElement('div');
-    none.className = 'm-sheet-empty';
-    none.textContent = 'Nothing on this day.';
-    list.appendChild(none);
-  }
-
-  const add = document.getElementById('m-sheet-add');
-  add.onclick = () => { closeMobileSheet(); openModal(ds, null); };
-  document.getElementById('m-sheet-bg').classList.remove('hidden');
-}
-
-function closeMobileSheet() {
-  document.getElementById('m-sheet-bg').classList.add('hidden');
-}
-
-document.getElementById('m-sheet-bg').addEventListener('click', e => {
-  if (e.target === document.getElementById('m-sheet-bg')) closeMobileSheet();
-});
 
 function renderMobile() {
   const grid = document.getElementById('cal-grid');
   grid.innerHTML = '';
-  document.getElementById('m-tab-month').classList.toggle('active', mobileView === 'month');
-  document.getElementById('m-tab-month').setAttribute('aria-pressed', String(mobileView === 'month'));
-  document.getElementById('m-tab-year').classList.toggle('active', mobileView === 'year');
-  document.getElementById('m-tab-year').setAttribute('aria-pressed', String(mobileView === 'year'));
-  if (mobileView === 'year') renderMobileYear(grid);
-  else                       renderMobileMonth(grid);
+
+  const today = todayStr();
+  const evs   = eventsForYear(curYear);
+  const hols  = loadHolidayList(curYear, curCountry);
+
+  const tl = document.createElement('div');
+  tl.className = 'm-tl';
+
+  // Day gutter: 1–31 down the left, stuck there while the months scroll.
+  const gut = document.createElement('div');
+  gut.className = 'm-tl-gut';
+  const corner = document.createElement('div');
+  corner.className = 'm-tl-corner';
+  gut.appendChild(corner);
+  for (let d = 1; d <= 31; d++) {
+    const n = document.createElement('div');
+    n.className = 'm-tl-daynum';
+    n.textContent = d;
+    gut.appendChild(n);
+  }
+  tl.appendChild(gut);
+
+  for (let m = 0; m < 12; m++) {
+    const dim = daysInMonth(curYear, m);
+    const col = document.createElement('div');
+    col.className = 'm-tl-col';
+    col.dataset.month = m;
+
+    const head = document.createElement('div');
+    head.className = 'm-tl-mon';
+    head.textContent = MONTHS[m];
+    col.appendChild(head);
+
+    const cells = document.createElement('div');
+    cells.className = 'm-tl-cells';
+
+    // Day cells: the tap-to-create layer, and the weekend/today paint.
+    for (let d = 1; d <= 31; d++) {
+      const cell = document.createElement('div');
+      if (d > dim) {
+        cell.className = 'm-tl-cell inactive';
+        cells.appendChild(cell);
+        continue;
+      }
+      const ds  = padDate(curYear, m, d);
+      const dow = getDOW(curYear, m, d);
+      cell.className = 'm-tl-cell'
+        + ((dow === 0 || dow === 6) ? ' weekend' : '')
+        + (ds === today ? ' today' : '');
+      cell.addEventListener('click', () => openModal(ds, null));
+      cells.appendChild(cell);
+    }
+
+    // This month's cards: events clipped to the month (an event crossing the
+    // boundary stays continuous down the column and picks up in the next one,
+    // labelled once), plus holidays as one-day cards. Overlaps share the
+    // column side by side, using the same lane assigner as the desktop bars.
+    const bars = [];
+    for (const ev of evs) {
+      const end = ev.endDate || ev.startDate;
+      const sp = parseDate(ev.startDate), ep = parseDate(end);
+      if (dateInt(end) < dateInt(padDate(curYear, m, 1))) continue;
+      if (dateInt(ev.startDate) > dateInt(padDate(curYear, m, dim))) continue;
+      bars.push({
+        s: (sp.month === m && sp.year === curYear) ? sp.day : 1,
+        e: (ep.month === m && ep.year === curYear) ? ep.day : dim,
+        ev,
+        cont: !(sp.month === m && sp.year === curYear),
+      });
+    }
+    for (const h of hols) {
+      const hp = parseDate(h.date);
+      if (hp.month !== m || hp.year !== curYear) continue;
+      bars.push({ s: hp.day, e: hp.day, holiday: h.name });
+    }
+
+    const { sorted, maxTracks } = bars.length ? assignTracks(bars) : { sorted: [], maxTracks: 0 };
+    const laneW = 100 / Math.max(1, maxTracks);
+
+    for (const bar of sorted) {
+      const card = document.createElement('div');
+      card.style.top    = ((bar.s - 1) * M_ROW + 2) + 'px';
+      card.style.height = ((bar.e - bar.s + 1) * M_ROW - 4) + 'px';
+      card.style.left   = `calc(${bar.track * laneW}% + 2px)`;
+      card.style.width  = `calc(${laneW}% - 4px)`;
+
+      if (bar.holiday) {
+        card.className = 'm-tl-ev m-tl-hol';
+        card.textContent = bar.holiday;
+        card.title = bar.holiday;
+      } else {
+        const ev = bar.ev;
+        card.className = `m-tl-ev cat-${ev.category}`;
+        applyCatStyle(card, ev.category);
+        const scale = Number(ev.titleScale);
+        if (scale > 0 && scale !== 1) card.style.fontSize = (13 * scale) + 'px';
+        card.textContent = (ev.emoji ? ev.emoji + ' ' : '') + ev.title;
+        if (bar.cont) {
+          const cont = document.createElement('span');
+          cont.className = 'm-cont';
+          cont.textContent = ' · cont.';
+          card.appendChild(cont);
+        }
+        card.title = ev.title;
+        card.addEventListener('click', e => {
+          e.stopPropagation();
+          openModal(ev.startDate, ev);
+        });
+      }
+      cells.appendChild(card);
+    }
+
+    col.appendChild(cells);
+    tl.appendChild(col);
+  }
+
+  grid.appendChild(tl);
   applySpotlight();
+
+  if (!_mScrolledToToday) {
+    _mScrolledToToday = true;
+    requestAnimationFrame(() => mobileScrollToToday());
+  }
 }
 
 // The overflow menu drives the hidden desktop buttons rather than duplicating
@@ -3012,16 +2807,9 @@ document.addEventListener('pointerdown', e => {
   if (!$mMenu.classList.contains('hidden') && !e.target.closest('.m-menu, .m-menu-btn')) closeMMenu();
 });
 
-document.getElementById('m-tab-month').addEventListener('click', () => {
-  mobileView = 'month'; renderMobile();
-});
-document.getElementById('m-tab-year').addEventListener('click', () => {
-  mobileView = 'year'; renderMobile();
-});
 document.getElementById('m-fab').addEventListener('click', () => {
   const t = parseDate(todayStr());
-  const m = currentMobileMonth();
-  openModal(t.year === curYear && t.month === m ? todayStr() : padDate(curYear, m, 1), null);
+  openModal(t.year === curYear ? todayStr() : padDate(curYear, 0, 1), null);
 });
 
 function renderCalendar() {
@@ -5043,13 +4831,7 @@ function goToToday() {
   if (year !== curYear) setYear(year);
 
   if (isMobile()) {
-    mobileView = 'month';
-    mobileMonth = parseDate(t).month;
-    renderMobile();
-    document.querySelector('.m-day.today')?.scrollIntoView({
-      block: 'center',
-      behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
-    });
+    mobileScrollToToday(matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth');
     return;
   }
 
