@@ -1871,6 +1871,16 @@
       text-align: center;
     }
     .m-tl-ev .m-cont { font-weight: var(--weight-normal); opacity: .7; font-size: 11px; }
+    /* A multi-day card's title lives in this box, slid along the span to
+       dodge overlaid cards; by default it covers the card and centres. */
+    .m-tl-lbl {
+      position: absolute; left: 0; right: 0; top: 0; bottom: 0;
+      display: flex; flex-direction: column;
+      justify-content: safe center;
+      padding: 4px 7px;
+      overflow: hidden;
+    }
+
     /* A day sharing its 44px between several one-day items. */
     .m-tl-slim { padding: 1px 5px; font-size: 11px; }
 
@@ -2779,12 +2789,23 @@ function renderMobile() {
       applyCatStyle(card, ev.category);
       const scale = Number(ev.titleScale);
       if (scale > 0 && scale !== 1) card.style.fontSize = (13 * scale) + 'px';
-      card.textContent = (ev.emoji ? ev.emoji + ' ' : '') + ev.title;
+
+      // A multi-day card holds its text in a label box of its own, so the
+      // caller can slide the title into whichever stretch of the span isn't
+      // hidden under an overlaid card. One-day cards keep their text inline.
+      let host = card;
+      if (bar.e > bar.s) {
+        host = document.createElement('div');
+        host.className = 'm-tl-lbl';
+        card.appendChild(host);
+        bar.lbl = host;
+      }
+      host.appendChild(document.createTextNode((ev.emoji ? ev.emoji + ' ' : '') + ev.title));
       if (bar.cont) {
         const cont = document.createElement('span');
         cont.className = 'm-cont';
         cont.textContent = ' · cont.';
-        card.appendChild(cont);
+        host.appendChild(cont);
       }
       card.title = ev.title;
       card.addEventListener('click', e => {
@@ -2794,13 +2815,38 @@ function renderMobile() {
       return card;
     };
 
-    for (const bar of spans) {
+    spans.forEach((bar, i) => {
       const card = makeCard(bar);
       card.style.top    = ((bar.s - 1) * M_ROW + 2) + 'px';
       card.style.height = ((bar.e - bar.s + 1) * M_ROW - 4) + 'px';
       fill(card);
       cells.appendChild(card);
-    }
+
+      // Which of this bar's days sit under something painted on top of it —
+      // a shorter span later in paint order, or the day's one-day stack? The
+      // title moves to the longest run left clear, so overlaid cards never
+      // sit on the text. A fully covered bar keeps the centred default;
+      // there is nowhere better.
+      const covered = new Set(Object.keys(byDay).map(Number));
+      for (let j = i + 1; j < spans.length; j++) {
+        for (let d = Math.max(bar.s, spans[j].s); d <= Math.min(bar.e, spans[j].e); d++) covered.add(d);
+      }
+      let best = null, run = null;
+      for (let d = bar.s; d <= bar.e + 1; d++) {
+        if (d <= bar.e && !covered.has(d)) {
+          run = run || { s: d };
+          run.e = d;
+        } else if (run) {
+          if (!best || run.e - run.s > best.e - best.s) best = run;
+          run = null;
+        }
+      }
+      if (bar.lbl && best && (best.s !== bar.s || best.e !== bar.e)) {
+        bar.lbl.style.top    = ((best.s - bar.s) * M_ROW) + 'px';
+        bar.lbl.style.height = ((best.e - best.s + 1) * M_ROW - 4) + 'px';
+        bar.lbl.style.bottom = 'auto';
+      }
+    });
 
     for (const [d, dayBars] of Object.entries(byDay)) {
       const n     = dayBars.length;
