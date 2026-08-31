@@ -1742,6 +1742,16 @@
 
     body.mobile .cal-wrap { padding: 0 0 calc(84px + env(safe-area-inset-bottom, 0px)); }
 
+    /* A horizontal fling settles on the nearest month; vertical stays free.
+       scroll-padding keeps the snapped column clear of the sticky day gutter,
+       which overlays the leftmost 34px. Scoped to body.mobile — #page-outer
+       is the desktop's scroller too, and Fit must never be snapped. */
+    body.mobile .page-outer {
+      scroll-snap-type: x mandatory;
+      scroll-padding-left: 34px;
+    }
+    .m-tl-col { scroll-snap-align: start; }
+
     body.mobile .m-fab {
       position: fixed; right: 16px;
       bottom: calc(14px + env(safe-area-inset-bottom, 0px));
