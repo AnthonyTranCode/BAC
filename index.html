@@ -1861,6 +1861,9 @@
       text-align: center;
     }
     .m-tl-ev .m-cont { font-weight: var(--weight-normal); opacity: .7; font-size: 11px; }
+    /* A day sharing its 44px between several one-day items. */
+    .m-tl-slim { padding: 1px 5px; font-size: 11px; }
+
     .m-tl-hol {
       background: var(--muted); color: var(--foreground);
       font-size: 10px; font-weight: var(--weight-normal);
@@ -2735,40 +2738,72 @@ function renderMobile() {
       bars.push({ s: hp.day, e: hp.day, holiday: h.name });
     }
 
-    const { sorted, maxTracks } = bars.length ? assignTracks(bars) : { sorted: [], maxTracks: 0 };
-    const laneW = 100 / Math.max(1, maxTracks);
+    // No side-by-side lanes: every span takes the column's full width, the
+    // way the desktop grid draws its bars. Longer spans paint first so a
+    // shorter one overlays it — the covered stretch keeps its outline
+    // showing above and below, which is enough to read the span. Same-day
+    // one-day items then divide their day cell between them, stacked, on top
+    // of whatever bar runs beneath.
+    const fill = card => {
+      card.style.left  = '2px';
+      card.style.width = 'calc(100% - 4px)';
+    };
 
-    for (const bar of sorted) {
+    const spans   = bars.filter(b => b.e > b.s)
+                        .sort((a, b) => (b.e - b.s) - (a.e - a.s));
+    const byDay = {};
+    for (const b of bars.filter(b => b.e === b.s)) {
+      (byDay[b.s] = byDay[b.s] || []).push(b);
+    }
+
+    const makeCard = bar => {
       const card = document.createElement('div');
-      card.style.top    = ((bar.s - 1) * M_ROW + 2) + 'px';
-      card.style.height = ((bar.e - bar.s + 1) * M_ROW - 4) + 'px';
-      card.style.left   = `calc(${bar.track * laneW}% + 2px)`;
-      card.style.width  = `calc(${laneW}% - 4px)`;
-
       if (bar.holiday) {
         card.className = 'm-tl-ev m-tl-hol';
         card.textContent = bar.holiday;
         card.title = bar.holiday;
-      } else {
-        const ev = bar.ev;
-        card.className = `m-tl-ev cat-${ev.category}`;
-        applyCatStyle(card, ev.category);
-        const scale = Number(ev.titleScale);
-        if (scale > 0 && scale !== 1) card.style.fontSize = (13 * scale) + 'px';
-        card.textContent = (ev.emoji ? ev.emoji + ' ' : '') + ev.title;
-        if (bar.cont) {
-          const cont = document.createElement('span');
-          cont.className = 'm-cont';
-          cont.textContent = ' · cont.';
-          card.appendChild(cont);
-        }
-        card.title = ev.title;
-        card.addEventListener('click', e => {
-          e.stopPropagation();
-          openModal(ev.startDate, ev);
-        });
+        return card;
       }
+      const ev = bar.ev;
+      card.className = `m-tl-ev cat-${ev.category}`;
+      applyCatStyle(card, ev.category);
+      const scale = Number(ev.titleScale);
+      if (scale > 0 && scale !== 1) card.style.fontSize = (13 * scale) + 'px';
+      card.textContent = (ev.emoji ? ev.emoji + ' ' : '') + ev.title;
+      if (bar.cont) {
+        const cont = document.createElement('span');
+        cont.className = 'm-cont';
+        cont.textContent = ' · cont.';
+        card.appendChild(cont);
+      }
+      card.title = ev.title;
+      card.addEventListener('click', e => {
+        e.stopPropagation();
+        openModal(ev.startDate, ev);
+      });
+      return card;
+    };
+
+    for (const bar of spans) {
+      const card = makeCard(bar);
+      card.style.top    = ((bar.s - 1) * M_ROW + 2) + 'px';
+      card.style.height = ((bar.e - bar.s + 1) * M_ROW - 4) + 'px';
+      fill(card);
       cells.appendChild(card);
+    }
+
+    for (const [d, dayBars] of Object.entries(byDay)) {
+      const n     = dayBars.length;
+      const share = (M_ROW - 4) / n;
+      dayBars.forEach((bar, i) => {
+        const card = makeCard(bar);
+        card.style.top    = ((+d - 1) * M_ROW + 2 + i * share) + 'px';
+        card.style.height = (share - (i < n - 1 ? 2 : 0)) + 'px';
+        fill(card);
+        card.style.zIndex = 8;                     // above any bar beneath
+        if (n > 1) card.classList.add('m-tl-slim');
+        cells.appendChild(card);
+      });
     }
 
     col.appendChild(cells);
