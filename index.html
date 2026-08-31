@@ -441,9 +441,9 @@
       border-radius: var(--radius-md);
       font: var(--weight-medium) var(--font-bar)/var(--bar-h) var(--font);
       font-size: calc(var(--font-bar) * var(--title-scale, 1));
-      /* line-height carries the vertical centring, so a taller bar has to
-         restate it — and doing it this way keeps the ellipsis, which a flex
-         container would lose. */
+      /* A strip is one line tall, so line-height does the vertical centring
+         and text-overflow can still ellipsise. A full-height bar overrides
+         both below, where there is room to wrap instead. */
       color: var(--primary-foreground);
       padding: 0 14px;
       white-space: nowrap;
@@ -461,7 +461,29 @@
        single-day chip gets (1px above, 2px below). --bar-top is how far down
        the row the bar already sits, so a stacked bar fills only what is left. */
     .ev-bar.ev-fill {
-      height:      calc(var(--row-h) - var(--cell-hdr-h) - var(--bar-top, 0px) - 3px);
+      height: calc(var(--row-h) - var(--cell-hdr-h) - var(--bar-top, 0px) - 3px);
+      /* Given the row's full height, a title should use it rather than
+         truncate on one line: a short span is narrow but tall, so the text
+         wraps downward and stays readable. Column flex, not the line-height
+         trick, because that only centres a single line — and column
+         direction is what lets the text box take the bar's width and wrap
+         (a row-direction flex item won't shrink past its longest word).
+         `safe` keeps a title taller than its bar clipping at the bottom
+         only, instead of losing both ends. */
+      display: flex; flex-direction: column;
+      justify-content: safe center;
+      line-height: 1.3;
+      white-space: normal;
+      overflow-wrap: break-word;
+      padding: 4px 8px;
+    }
+
+    /* fitBars' last resort: back to a single ellipsised line, centred by
+       line-height the way a strip is. */
+    .ev-bar.ev-fill.ev-clamp {
+      display: block;
+      white-space: nowrap;
+      padding: 0 8px;
       line-height: calc(var(--row-h) - var(--cell-hdr-h) - var(--bar-top, 0px) - 3px);
     }
 
@@ -3235,7 +3257,7 @@ function buildGrid() {
   applySpotlight();   // freshly drawn bars must respect the active filter
 
   setRowHeightVar(rowHTarget ?? uniformCellH);
-  requestAnimationFrame(fitChips);   // font-only; safe to defer
+  requestAnimationFrame(() => { fitChips(); fitBars(); });   // font-only; safe to defer
 }
 
 // The pre-scan budgets minChipH() per chip, but a title that wraps to two lines
@@ -3277,6 +3299,31 @@ function fitChips() {
     while (chip.scrollWidth > chip.clientWidth && size > base * 0.55) {
       size -= 0.5;
       chip.style.fontSize = size + 'px';
+    }
+  });
+}
+
+// Full-height bars wrap their titles, and a wrapped title can want more height
+// than the row gives: bars sit in the overlay, so their text never fed into
+// measureRequiredRowH the way a chip's does. Shrink to fit rather than clip a
+// line in half — same ladder as fitChips, on the other axis. Only .ev-fill
+// bars need it; a strip is one line and ellipsises instead.
+function fitBars() {
+  document.querySelectorAll('.ev-bar.ev-fill').forEach(bar => {
+    bar.classList.remove('ev-clamp');
+    bar.style.fontSize = '';                        // back to the CSS size
+    const base = parseFloat(getComputedStyle(bar).fontSize) || 12;
+    let size = base;
+    while (bar.scrollHeight > bar.clientHeight && size > base * 0.6) {
+      size -= 0.5;
+      bar.style.fontSize = size + 'px';
+    }
+    // A row squeezed below what even the floor size can wrap into: one
+    // ellipsised line always fits, so fall back to what a strip does rather
+    // than cut a line of text in half.
+    if (bar.scrollHeight > bar.clientHeight) {
+      bar.style.fontSize = '';
+      bar.classList.add('ev-clamp');
     }
   });
 }
